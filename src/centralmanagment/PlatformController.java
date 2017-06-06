@@ -58,7 +58,7 @@ public class PlatformController {
 			System.out.println("Do match here!");
 			matcher.match();
 			
-			
+			System.out.println("Test github push!");
 			System.out.println("Generate SD pairs for optimizaiton");
 			List<SDPair> pairs = matcher.generateSDPairs();
 			
