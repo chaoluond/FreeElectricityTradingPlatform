@@ -9,7 +9,6 @@ import flowoptimizer.FlowOptimizer;
 import flowoptimizer.SDPair;
 import powernetwork.NetworkGraph;
 import supplydemandmatch.SupplyDemandMatcher;
-import supplydemandsimulation.Bus;
 
 
 
@@ -27,12 +26,12 @@ public class PlatformController {
 	public static int testInterval = 6; 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 10; // The number of intervals
+	public static int numInterval = 20; // The number of intervals
 	public static double pGenerate = 0.4; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
-	public static int minQuantity = 2; // Min electricity demand is 20 MWh
-	public static int maxQuantity = 20; // Max electricity demand is 200 MWh
+	public static int minQuantity = 20; // Min electricity demand is 20 MWh
+	public static int maxQuantity = 50; // Max electricity demand is 200 MWh
 	public static int bidid = 0; // global bid id counter
 	public static int offerid = 0; // global offer id counter
 	public static Semaphore bididlock = new Semaphore(1); // lock for bids
@@ -40,7 +39,7 @@ public class PlatformController {
 	public static double sourcePriceBid = 10; // 
 	public static double sourcePriceOffer = 9; 
 	public static double deliverPrice = 10; // 
-	public static int maxRoute = 2; // The max number of routes returned
+	public static int maxRoute = 3; // The max number of routes returned
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;

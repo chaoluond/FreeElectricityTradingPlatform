@@ -18,7 +18,7 @@ public class DemandBid {
 	public long maxStartTime; // Latest electricity receiving time in minutes
 	public long startTime;
 	public double sourcePrice; // The maximum unit price ($/MWh) the bidder would like to pay to the power generator
-	public double matchPrice; // final source price
+	public double matchedPrice; // final source price
 	public double deliverPrice; // The unit price ($/MWh) the bidder would like to pay to the distribution company  
 	
 	/*isContinuous == true ---- only accept continuous stable electricity supply
@@ -56,8 +56,8 @@ public class DemandBid {
 		this.deliverPrice = deliverPrice;
 	}
 	
-	public void setMatchPrice(double matchPrice) {
-		this.matchPrice = matchPrice;
+	public void setMatchPrice(double matchedPrice) {
+		this.matchedPrice = matchedPrice;
 	}
 	
 	public void setStartTime(long startTime) {
@@ -79,7 +79,7 @@ public class DemandBid {
 				", bidTime: " + bidTime + ", quantity: " + quantity + 
 				", minTime: " + minStartTime + ", maxTime: " + 
 				maxStartTime + ", sourcePrice: " + sourcePrice + ", isContinuous: " + 
-				isContinuous + ", result: " + result + ", matchPrice: " + matchPrice + 
+				isContinuous + ", result: " + result + ", matchPrice: " + matchedPrice + 
 				", quantityRec: " + quantityRec + ", startTime : " + startTime + 
 				", powerplan: " + powerplan + "]");
 	}
