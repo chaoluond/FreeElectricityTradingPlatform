@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import centralmanagment.PlatformController;
 import flowoptimizer.SDPair;
@@ -24,6 +25,7 @@ import supplydemandsimulation.Bus;
 public class SupplyDemandMatcher {
 	public int numBus;
 	public NetworkGraph network;
+	public Random ran;
 	public static List<Bus> busPool;
 	public static HashSet<Integer> suppliers;
 	public static HashSet<Integer> demanders;
@@ -34,6 +36,7 @@ public class SupplyDemandMatcher {
 	public SupplyDemandMatcher(NetworkGraph network, int numBus) {
 		this.network = network;
 		this.numBus = numBus;
+		ran = new Random();
 		// Populate bus pool
 		busPool = new ArrayList<>();
 		busPool.add(new Bus(0)); // Dummy bus, never will use it.
@@ -76,8 +79,9 @@ public class SupplyDemandMatcher {
 						System.out.println("startTime calculation error!");
 					
 					//determine price and power delivery plan
-					double price = supplyBus.currSupply.sourcePrice;
-					double powerplan = demandBus.currBid.quantity / PlatformController.testInterval 
+					double price = supplyBus.currSupply.minSourcePrice;
+					int step = 1 + ran.nextInt(PlatformController.powerPlanRange);
+					double powerplan = demandBus.currBid.quantity / step 
 							/ (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 					
 					demandBus.currBid.setPowerPlan(powerplan);
@@ -118,7 +122,7 @@ public class SupplyDemandMatcher {
 			return false;
 		
 		// check price
-		if (demandBus.currBid.sourcePrice < supplyBus.currSupply.sourcePrice)
+		if (demandBus.currBid.maxSourcePrice < supplyBus.currSupply.minSourcePrice)
 			return false;
 		
 		// check start time
