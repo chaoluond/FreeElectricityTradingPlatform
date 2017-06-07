@@ -11,6 +11,7 @@ import com.joptimizer.functions.PDQuadraticMultivariateRealFunction;
 import com.joptimizer.optimizers.JOptimizer;
 import com.joptimizer.optimizers.OptimizationRequest;
 
+import Jama.Matrix;
 import powernetwork.Branch;
 import powernetwork.NetworkGraph;
 import powernetwork.Route;
@@ -25,6 +26,7 @@ public class FlowOptimizer {
 	public double[][] A; // matrix A for quadratic programming
 	public double[] b; // vector b for quadratic programming
 	List<List<List<BranchRouteFlow>>> solution; // The solution for power flow. For each SD pair, each route, each branch
+	List<BranchFlow> branchflows; // The flows for each branch
 	
 	public FlowOptimizer(NetworkGraph network, List<SDPair> pairs) {
 		this.network = network;
@@ -33,23 +35,23 @@ public class FlowOptimizer {
 	}
 	
 	
-	public List<BranchFlow> solve() {
+	public boolean solve() {
 		double unitconv = 1e6;
 		
 		// Compute all branches involved in the delivery. 
 		// int[0] --- SD pair id, int[1] --- route id, int[2] --- branch id
 		// The first integer in the hashtable is the branch id.
 		HashMap<Integer, List<int[]>> branchIndex = new HashMap<>();
-		for (int j = 0; j < numSD; j++) {
-			SDPair pair = pairs.get(j);
+		for (int k = 0; k < numSD; k++) {
+			SDPair pair = pairs.get(k);
 			List<Route> routes = pair.routes;
-			for (int k = 0; k < routes.size(); k++) {
-				Route curr = routes.get(k);
+			for (int j = 0; j < routes.size(); j++) {
+				Route curr = routes.get(j);
 				for (Branch br : curr.route) {
 					if (!branchIndex.containsKey(br.id))
 						branchIndex.put(br.id, new ArrayList<>());
 					
-					int[] indices = new int[]{j, k, br.id};
+					int[] indices = new int[]{k, j, br.id};
 					branchIndex.get(br.id).add(indices);
 				}
 				
@@ -61,7 +63,7 @@ public class FlowOptimizer {
 		Collections.sort(branchList);
 		
 		
-		// Add the mapping from (j, k, i) ----> index used in the P matrix
+		// Add the mapping from (k, j, i) ----> index used in the P matrix
 		// This is useful when we construct the constraints in the optimization problem.
 		HashMap<String, Integer> ind2Pind = new HashMap<>();
 		int dim = 0;
@@ -71,6 +73,11 @@ public class FlowOptimizer {
 				ind2Pind.put(str, dim++);
 			}
 		}
+		
+		
+		
+		
+		
 		
 		
 		/*
@@ -164,7 +171,6 @@ public class FlowOptimizer {
 			b[i] = bList.get(i);
 		}
 		
-		//WriteToFile.write2File(A, "test_A.txt");
 		
 		
 		// Inequalities
@@ -219,15 +225,20 @@ public class FlowOptimizer {
 		
 		JOptimizer opt = new JOptimizer();
 		opt.setOptimizationRequest(or);
+		int returncode = -1;
 		try {
-			opt.optimize();
+			returncode = opt.optimize();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+		
+		System.out.println("I am here!");
+		System.out.println("Returncode = " + returncode);
 		// Get the solution
 		double[] sol = opt.getOptimizationResponse().getSolution();
+		
 		
 		
 		/*
@@ -274,7 +285,7 @@ public class FlowOptimizer {
 		}*/
 		
 		
-		List<BranchFlow> result = new ArrayList<>();
+		branchflows = new ArrayList<>();
 		for (int brid : branchList) {
 			Branch br = network.branch.get(brid);
 			List<int[]> components = branchIndex.get(brid);
@@ -290,16 +301,60 @@ public class FlowOptimizer {
 			}
 			
 			BranchFlow bf = new BranchFlow(br.bus1, br.bus2, sum);
-			result.add(bf);
+			branchflows.add(bf);
 		}
 		
 		
-		System.out.println("Total powerflow for each branch:");
+		/*System.out.println("Total powerflow for each branch:");
 		for (BranchFlow bf : result) {
 			bf.print();
+		}*/
+		
+		return true;
+		
+	}
+	
+	
+	
+	public boolean solveLinearEquation(double[][] A, double[] b, HashMap<Integer, List<int[]>> branchIndex, HashMap<String, Integer> ind2Pind)  {
+		Matrix lhs = new Matrix(A);
+		Matrix rhs = new Matrix(b, b.length);
+		
+		// Solve the linear equations
+		Matrix sol = lhs.solve(rhs);
+		double[] solution = new double[b.length];
+		for (int i = 0; i < b.length; i++)
+			solution[i] = sol.get(i, 0);
+		
+		
+		// check nonnegavility
+		for (double var : solution) {
+			if (var < 0) {
+				System.out.println("Flow cannot be negative! Error!");
+				return false;
+			}
 		}
 		
-		return result;
+		
+		// check capacity constraint
+		for (int branchid : branchIndex.keySet()) {
+			Branch curr = network.branch.get(branchid);
+			double capacity = curr.capacity;
+			List<int[]> components = branchIndex.get(branchid);
+			double sum = 0;
+			for (int[] tuple : components) {
+				String key = tuple[0] + "+" + tuple[1] + "+" + tuple[2];
+				int ind = ind2Pind.get(key);
+				sum += solution[ind];
+			}
+			
+			if (sum > capacity) {
+				System.out.println("Exceed branch capacity! Error!");
+				return false;
+			}
+		}
+		
+		return true;
 		
 	}
 	

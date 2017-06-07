@@ -30,8 +30,8 @@ public class PlatformController {
 	public static double pGenerate = 0.5; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
-	public static int minQuantity = 20; // Min electricity demand is 20 MWh
-	public static int maxQuantity = 25; // Max electricity demand is 200 MWh
+	public static int minQuantity = 5; // Min electricity demand is 20 MWh
+	public static int maxQuantity = 10; // Max electricity demand is 200 MWh
 	public static int bidid = 0; // global bid id counter
 	public static int offerid = 0; // global offer id counter
 	public static Semaphore bididlock = new Semaphore(1); // lock for bids
@@ -41,7 +41,7 @@ public class PlatformController {
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
 	public static double minSourcePriceOffer = 5; // Min source price for offer
 	public static double deliverPrice = 10; // 
-	public static int maxRoute = 4; // The max number of routes returned
+	public static int maxRoute = 1; // The max number of routes returned
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
@@ -59,7 +59,6 @@ public class PlatformController {
 			System.out.println("Do match here!");
 			matcher.match();
 			
-			System.out.println("Test github from labrary pc!");
 			System.out.println("Generate SD pairs for optimizaiton");
 			List<SDPair> pairs = matcher.generateSDPairs();
 			
