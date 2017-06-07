@@ -18,7 +18,7 @@ public class Bus {
 	public DemandBid currBid; // The current bid including matched or unmatched
 	public double aggreSupply; // aggregated supply from the past
 	public SupplyOffer currSupply; // Current supply offer
-	public  Random ran; // random number generator
+	public Random ran; // random number generator
 	
 	public Bus(int busid) {
 		this.busid = busid;
