@@ -16,10 +16,10 @@ public class DemandBid {
 	public double quantity; // Electricity needed in MWh
 	public long minStartTime; // Earliest electricity receiving time in minutes
 	public long maxStartTime; // Latest electricity receiving time in minutes
-	public long startTime;
-	public double sourcePrice; // The maximum unit price ($/MWh) the bidder would like to pay to the power generator
-	public double matchedPrice; // final source price
-	public double deliverPrice; // The unit price ($/MWh) the bidder would like to pay to the distribution company  
+	public long startTime;// The matched start time 
+	public double maxSourcePrice; // The maximum unit price ($/MW) the bidder would like to pay to the power generator
+	public double matchedPrice; // Matched source price ($/MW)
+	public double deliverPrice; // The unit price ($/MW) the bidder would like to pay to the distribution company  
 	
 	/*isContinuous == true ---- only accept continuous stable electricity supply
 	 *isContinuous == false ----- accept both continuous and discontinuous electricity supply
@@ -42,7 +42,7 @@ public class DemandBid {
 		this.minStartTime = minStartTime;
 		this.maxStartTime = maxStartTime;
 		this.quantity = quantity;
-		this.sourcePrice = maxPrice;
+		this.maxSourcePrice = maxPrice;
 		this.isContinuous = isContinuous;
 	}
 	
@@ -78,7 +78,7 @@ public class DemandBid {
 		System.out.println("[ Bid id: " + bidid + ", bus id: " + busid + 
 				", bidTime: " + bidTime + ", quantity: " + quantity + 
 				", minTime: " + minStartTime + ", maxTime: " + 
-				maxStartTime + ", sourcePrice: " + sourcePrice + ", isContinuous: " + 
+				maxStartTime + ", sourcePrice: " + maxSourcePrice + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchedPrice + 
 				", quantityRec: " + quantityRec + ", startTime : " + startTime + 
 				", powerplan: " + powerplan + "]");

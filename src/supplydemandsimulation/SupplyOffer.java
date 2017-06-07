@@ -16,8 +16,8 @@ public class SupplyOffer {
 	public double quantity; // Electricity offered in MWh
 	public long minStartTime; // Earliest electricity supplying time in minutes
 	public long maxStartTime; // Latest electricity supplying time in minutes
-	public long startTime; // True start time
-	public double sourcePrice; // The minimum unit price ($/MWh) the supplier would like to receive from the user
+	public long startTime; // The matched start time
+	public double minSourcePrice; // The minimum unit price ($/MWh) the supplier would like to receive from the user
 	public double matchPrice;
 	/*
 	 * isContinuous == true ----> supply continuous and stable power
@@ -43,7 +43,7 @@ public class SupplyOffer {
 		this.minStartTime = minStartTime;
 		this.maxStartTime = maxStartTime;
 		this.quantity = quantity;
-		this.sourcePrice = sourcePrice;
+		this.minSourcePrice = sourcePrice;
 		this.isContinuous = isContinuous;
 	}
 	
@@ -70,7 +70,7 @@ public class SupplyOffer {
 		System.out.println("[ Bid id: " + offerid + ", bus id: " + busid + 
 				", bidTime: " + offerTime + ", quantity: " + quantity + 
 				", minTime: " + minStartTime + ", maxTime: " + 
-				maxStartTime + ", sourcePrice: " + sourcePrice + ", isContinuous: " + 
+				maxStartTime + ", sourcePrice: " + minSourcePrice + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchPrice + 
 				", quantitySupply: " + quantitySupply + ", startTime : " + startTime + 
 				", supplyplan: " + supplyPlan + ", total supply plan: " + totalSupplyPlan + 

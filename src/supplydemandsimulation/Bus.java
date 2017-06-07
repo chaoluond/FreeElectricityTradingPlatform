@@ -97,9 +97,16 @@ public class Bus {
 	
 	
 	public DemandBid generateBid() {
-		int step = 1 + ran.nextInt(PlatformController.timeRangeBid);
-		long startTime = PlatformController.standardTime + 
-				step * PlatformController.timeInterval;
+		int step1 = 1 + ran.nextInt(PlatformController.timeRangeBid);
+		int step2 = 1 + ran.nextInt(PlatformController.timeRangeBid);
+		
+		int minStep = Math.min(step1, step2);
+		int maxStep = Math.max(step1, step2);
+		
+		long minStartTime = PlatformController.standardTime + 
+				minStep * PlatformController.timeInterval;
+		long maxStartTime = PlatformController.standardTime + 
+				maxStep * PlatformController.timeInterval;
 		
 		
 		double quantity = ran.nextDouble() * (PlatformController.maxQuantity 
@@ -116,10 +123,13 @@ public class Bus {
 		}
 		
 		boolean isContinuous = true; // Only accept continuous power delivery
-		double sourcePrice = PlatformController.sourcePriceBid;
+		double sourcePrice = PlatformController.minSourcePriceBid + ran.nextDouble() * (PlatformController.maxSourcePriceBid - 
+				PlatformController.minSourcePriceBid);
+		
+		
 		
 		DemandBid db = new DemandBid(bidid, busid, PlatformController.standardTime, 
-				startTime, startTime, quantity, sourcePrice, isContinuous);
+				minStartTime, maxStartTime, quantity, sourcePrice, isContinuous);
 		
 		return db;
 	}
@@ -150,7 +160,8 @@ public class Bus {
 		}
 		
 		boolean isContinuous = true; // Supply continuous power
-		double sourcePrice = PlatformController.sourcePriceOffer;
+		double sourcePrice = PlatformController.minSourcePriceOffer + ran.nextDouble() * (PlatformController.maxSourcePriceOffer - 
+				PlatformController.minSourcePriceOffer);
 		
 		SupplyOffer so = new SupplyOffer(offerid, busid, PlatformController.standardTime, 
 				minStartTime, maxStartTime, quantity, sourcePrice, isContinuous);
