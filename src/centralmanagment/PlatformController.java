@@ -56,7 +56,9 @@ public class PlatformController {
 	
 	public void run() {
 		double plsum = 0;
+		int countInfeasible = 0;
 		for (int step = 0; step < numInterval; step++) {
+			System.out.println("Iteration #: " + step);
 			System.out.println("Do match here!");
 			matcher.match();
 			
@@ -73,8 +75,11 @@ public class PlatformController {
 			else {
 				SupplyDemandMatcher.haschange = false;
 				foper = new FlowOptimizer(network, pairs);
-				foper.solve();
-				plsum += foper.computePowerLoss();
+				boolean result = foper.solve();
+				if (result) 
+					plsum += foper.computePowerLoss();
+				else
+					countInfeasible++;
 			}
 			
 			System.out.println("Update each bus");
@@ -85,7 +90,7 @@ public class PlatformController {
 			PlatformController.standardTime += PlatformController.timeInterval;
 		}
 		
-		System.out.println("Average power loss is " + plsum / numInterval);
+		System.out.println("Average power loss is " + plsum / (numInterval - countInfeasible));
 	}
 	
 	public static void main(String[] args) {
