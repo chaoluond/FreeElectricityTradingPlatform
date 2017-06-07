@@ -26,12 +26,12 @@ public class PlatformController {
 	public static int powerPlanRange = 10; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 20; // The number of intervals
-	public static double pGenerate = 0.5; // the probability that this bus will generate a new bid or offer is 90%
+	public static int numInterval = 960; // The number of intervals
+	public static double pGenerate = 0.2; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
-	public static int minQuantity = 5; // Min electricity demand is 20 MWh
-	public static int maxQuantity = 10; // Max electricity demand is 200 MWh
+	public static int minQuantity = 10; // Min electricity demand is 20 MWh
+	public static int maxQuantity = 30; // Max electricity demand is 200 MWh
 	public static int bidid = 0; // global bid id counter
 	public static int offerid = 0; // global offer id counter
 	public static Semaphore bididlock = new Semaphore(1); // lock for bids
@@ -55,6 +55,7 @@ public class PlatformController {
 	
 	
 	public void run() {
+		double plsum = 0;
 		for (int step = 0; step < numInterval; step++) {
 			System.out.println("Do match here!");
 			matcher.match();
@@ -73,6 +74,7 @@ public class PlatformController {
 				SupplyDemandMatcher.haschange = false;
 				foper = new FlowOptimizer(network, pairs);
 				foper.solve();
+				plsum += foper.computePowerLoss();
 			}
 			
 			System.out.println("Update each bus");
@@ -82,6 +84,8 @@ public class PlatformController {
 			System.out.println("Update model standard time");
 			PlatformController.standardTime += PlatformController.timeInterval;
 		}
+		
+		System.out.println("Average power loss is " + plsum / numInterval);
 	}
 	
 	public static void main(String[] args) {
