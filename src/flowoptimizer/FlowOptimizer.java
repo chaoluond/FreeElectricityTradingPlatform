@@ -175,7 +175,6 @@ public class FlowOptimizer {
 	}
 	
 	
-	
 	private boolean solveLinearEquation(double[][] A, double[] b, HashMap<Integer, List<int[]>> branchIndex, 
 			List<Integer> branchList, HashMap<String, Integer> ind2Pind)  {
 		Matrix lhs = new Matrix(A);
@@ -221,7 +220,6 @@ public class FlowOptimizer {
 		System.out.println("Power loss is " + computePowerLoss());
 		return true;
 	}
-	
 	
 	
 	private boolean solveOptimization(double[][] P, double[][] A, double[] b, 
@@ -363,6 +361,7 @@ public class FlowOptimizer {
 			}
 		}*/
 	}
+	
 	
 	public void computeBranchFlow(HashMap<Integer, List<int[]>> branchIndex,
 			List<Integer> branchList, HashMap<String, Integer> ind2Pind) {

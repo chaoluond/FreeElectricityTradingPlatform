@@ -26,7 +26,7 @@ public class PlatformController {
 	public static int powerPlanRange = 10; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 960; // The number of intervals
+	public static int numInterval = 400; // The number of intervals
 	public static double pGenerate = 0.2; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
@@ -41,7 +41,7 @@ public class PlatformController {
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
 	public static double minSourcePriceOffer = 5; // Min source price for offer
 	public static double deliverPrice = 10; // 
-	public static int maxRoute = 3; // The max number of routes returned
+	public static int maxRoute = 4; // The max number of routes returned
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
