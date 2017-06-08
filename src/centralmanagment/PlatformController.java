@@ -41,7 +41,7 @@ public class PlatformController {
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
 	public static double minSourcePriceOffer = 5; // Min source price for offer
 	public static double deliverPrice = 10; // 
-	public static int maxRoute = 1; // The max number of routes returned
+	public static int maxRoute = 3; // The max number of routes returned
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
@@ -56,6 +56,7 @@ public class PlatformController {
 	
 	public void run() {
 		double plsum = 0;
+		int totalHops = 0;
 		int countInfeasible = 0;
 		for (int step = 0; step < numInterval; step++) {
 			System.out.println("Iteration #: " + step);
@@ -76,8 +77,10 @@ public class PlatformController {
 				SupplyDemandMatcher.haschange = false;
 				foper = new FlowOptimizer(network, pairs);
 				boolean result = foper.solve();
-				if (result) 
+				if (result) { 
 					plsum += foper.computePowerLoss();
+					totalHops += foper.numHops;
+				}
 				else
 					countInfeasible++;
 			}
@@ -91,6 +94,7 @@ public class PlatformController {
 		}
 		
 		System.out.println("Average power loss is " + plsum / (numInterval - countInfeasible));
+		System.out.println("Average number of hops is " + totalHops * 1.0 / (numInterval - countInfeasible));
 	}
 	
 	public static void main(String[] args) {

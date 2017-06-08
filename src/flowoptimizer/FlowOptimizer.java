@@ -29,6 +29,7 @@ public class FlowOptimizer {
 	List<List<List<BranchRouteFlow>>> brchrouteflows; // The solution for power flow. For each SD pair, each route, each branch
 	List<BranchFlow> branchflows; // The flows for each branch
 	public double[] solution; // The solution from solve()
+	public int numHops; // The total number of hops = the number of branches
 	
 	public FlowOptimizer(NetworkGraph network, List<SDPair> pairs) {
 		this.network = network;
@@ -61,6 +62,7 @@ public class FlowOptimizer {
 		
 		List<Integer> branchList = new ArrayList<>(branchIndex.keySet());
 		Collections.sort(branchList);
+		numHops = branchList.size();
 		
 		
 		// Add the mapping from (k, j, i) ----> index used in the P matrix and X vector
@@ -392,5 +394,7 @@ public class FlowOptimizer {
 			bf.print();
 		}*/
 	}
+	
+	
 	
 }
