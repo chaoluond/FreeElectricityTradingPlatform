@@ -9,7 +9,7 @@ public class WriteToFile {
 	
 	public static void write2File(double[][] matrix, String fileName) {
 		
-		DecimalFormat format = new DecimalFormat("#0.0");
+		DecimalFormat format = new DecimalFormat("#0.000");
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
 			for (int i = 0; i < matrix.length; i++) {

@@ -9,6 +9,7 @@ import flowoptimizer.FlowOptimizer;
 import flowoptimizer.SDPair;
 import powernetwork.NetworkGraph;
 import supplydemandmatch.SupplyDemandMatcher;
+import unittest.WriteToFile;
 
 
 
@@ -26,7 +27,7 @@ public class PlatformController {
 	public static int powerPlanRange = 10; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 400; // The number of intervals
+	public static int numInterval = 2880; // The number of intervals
 	public static double pGenerate = 0.2; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
@@ -41,7 +42,7 @@ public class PlatformController {
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
 	public static double minSourcePriceOffer = 5; // Min source price for offer
 	public static double deliverPrice = 10; // 
-	public static int maxRoute = 4; // The max number of routes returned
+	public static int maxRoute = 2; // The max number of routes returned
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
@@ -57,7 +58,7 @@ public class PlatformController {
 	public void run() {
 		double plsum = 0;
 		int totalHops = 0;
-		int countInfeasible = 0;
+		int countfeasible = 0;
 		for (int step = 0; step < numInterval; step++) {
 			System.out.println("Iteration #: " + step);
 			System.out.println("Do match here!");
@@ -80,9 +81,8 @@ public class PlatformController {
 				if (result) { 
 					plsum += foper.computePowerLoss();
 					totalHops += foper.numHops;
+					countfeasible++;
 				}
-				else
-					countInfeasible++;
 			}
 			
 			System.out.println("Update each bus");
@@ -93,8 +93,16 @@ public class PlatformController {
 			PlatformController.standardTime += PlatformController.timeInterval;
 		}
 		
-		System.out.println("Average power loss is " + plsum / (numInterval - countInfeasible));
-		System.out.println("Average number of hops is " + totalHops * 1.0 / (numInterval - countInfeasible));
+		double avgpowloss = plsum / countfeasible;
+		double avgnumhop = totalHops * 1.0 / countfeasible;
+		
+		double[][] matrix = new double[2][1];
+		matrix[0][0] = avgpowloss;
+		matrix[1][0] = avgnumhop;
+		
+		//WriteToFile.write2File(matrix, "result_maxroute6.txt");
+		System.out.println("Average power loss is " + plsum / countfeasible);
+		System.out.println("Average number of hops is " + totalHops * 1.0 / countfeasible);
 	}
 	
 	public static void main(String[] args) {

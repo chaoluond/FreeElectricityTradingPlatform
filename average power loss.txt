@@ -1,5 +1,7 @@
 pGenerate = 0.2
-maxroute = 1 ----- 2.66e7
-maxroute = 2 ----- 2.00e7
-maxroute = 3 ----- 2.00e7    #hops = 158
-maxroute = 4 ----- 1.82e7    #hops = 164
+maxroute = 1 ----- 2.52e7    #hops = 97
+maxroute = 2 ----- 2.19e7    #hops = 134
+maxroute = 3 ----- 2.03e7    #hops = 156
+maxroute = 4 ----- 1.89e7    #hops = 168
+maxroute = 5 ----- 1.92e7    #hops = 177
+maxroute = 6 ----- 1.81e7    #hops = 182 

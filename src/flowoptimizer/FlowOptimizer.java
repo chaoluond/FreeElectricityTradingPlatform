@@ -170,8 +170,11 @@ public class FlowOptimizer {
 			
 		if (PlatformController.maxRoute == 1)
 			return solveLinearEquation(A, b, branchIndex, branchList, ind2Pind);
-		else
-			return solveOptimization(P, A, b, branchIndex, branchList, ind2Pind);
+		else {
+			boolean r = solveOptimization(P, A, b, branchIndex, branchList, ind2Pind);
+			computeBranchFlow(branchIndex, branchList, ind2Pind);
+			return r;
+		}
 	}
 	
 	
@@ -388,10 +391,10 @@ public class FlowOptimizer {
 		}
 		
 		
-		/*System.out.println("Total powerflow for each branch:");
-		for (BranchFlow bf : result) {
+		System.out.println("Total powerflow for each branch:");
+		for (BranchFlow bf : branchflows) {
 			bf.print();
-		}*/
+		}
 	}
 	
 	
