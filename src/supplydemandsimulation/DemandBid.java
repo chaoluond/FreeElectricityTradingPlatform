@@ -30,31 +30,24 @@ public class DemandBid {
 	 * result == true ----- This bid has been matched to a supplier
 	 * result == false ----- This bid has not been matched to a supplier
 	 */
+	
 	public boolean result = false;
 	public double quantityRec = 0; // Electricity has been received.
-	public double powerplan = 0; // power delivery (in MW) during each horizon. 
+	public double deliverRate = 0; // request power delivery rate (in MW) during each horizon. 
 	
 	public DemandBid(int bidid, int busid, long bidTime, long minStartTime, 
-			long maxStartTime, double quantity, double maxPrice, boolean isContinuous) {
+			long maxStartTime, double quantity, double deliverRate, double maxPrice, boolean isContinuous) {
 		this.bidid = bidid;
 		this.busid = busid;
 		this.bidTime = bidTime;
 		this.minStartTime = minStartTime;
 		this.maxStartTime = maxStartTime;
 		this.quantity = quantity;
+		this.deliverRate = deliverRate;
 		this.maxSourcePrice = maxPrice;
 		this.isContinuous = isContinuous;
 	}
 	
-	
-	public double getScore() {// calculate the fitness score
-		// TODO by Chao, [Jun 4, 2017, 7:59:31 PM]. To implement later on
-		return 100;
-	}
-	
-	public void setDeliverPrice(double deliverPrice) {
-		this.deliverPrice = deliverPrice;
-	}
 	
 	public void setMatchPrice(double matchedPrice) {
 		this.matchedPrice = matchedPrice;
@@ -64,13 +57,9 @@ public class DemandBid {
 		this.startTime = startTime;
 	}
 	
-	public void setPowerPlan(double powerplan) {
-		this.powerplan = powerplan;
-	}
-	
 	public void receive() {
 		if (startTime <= PlatformController.standardTime)
-			quantityRec += powerplan * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+			quantityRec += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 	}
 	
 	
@@ -81,7 +70,7 @@ public class DemandBid {
 				maxStartTime + ", sourcePrice: " + maxSourcePrice + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchedPrice + 
 				", quantityRec: " + quantityRec + ", startTime : " + startTime + 
-				", powerplan: " + powerplan + "]");
+				", deliver rate: " + deliverRate + "]");
 	}
 }
 

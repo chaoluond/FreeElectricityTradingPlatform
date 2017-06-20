@@ -18,7 +18,7 @@ public class SupplyOffer {
 	public long maxStartTime; // Latest electricity supplying time in minutes
 	public long startTime; // The matched start time
 	public double minSourcePrice; // The minimum unit price ($/MWh) the supplier would like to receive from the user
-	public double matchPrice;
+	public double matchPrice; // The matched price
 	/*
 	 * isContinuous == true ----> supply continuous and stable power
 	 * isContinuous == false ----> supply discontinuous power
@@ -27,28 +27,41 @@ public class SupplyOffer {
 	
 	
 	/*
+	 * isRenewable == true ---> renewable energy
+	 * isRenewable == false ---> Not renewable energy
+	 */
+	public boolean isRenewable; 
+	
+	
+	/*
 	 * result == false ---- No match
 	 * result == true ---- has a match
 	 */
 	public boolean result = false;
 	public double quantitySupply = 0; // Supplied electricity in MWh
-	public double supplyPlan = 0; // power supply (in MW) during each horizon
+	public double minDeliverRate = 0; // minimum power deliver rate (in MW) during each interval
+	public double maxDeliverRate = 0; // maximum power deliver rate (in MW) during each interval
+	public double deliverRate = 0; // agreed deliver rate (in MW) during each interval
 	public double totalSupplyPlan = 0; // Total power supply (in MWh) for this matched pair
 
 	public SupplyOffer(int offerid, int busid, long offerTime, long minStartTime, 
-			long maxStartTime, double quantity, double sourcePrice, boolean isContinuous) {
+			long maxStartTime, double quantity, double minDeliverRate, double maxDeliverRate,
+			double sourcePrice, boolean isContinuous, boolean isRenewable) {
 		this.offerid = offerid;
 		this.busid = busid;
 		this.offerTime = offerTime;
 		this.minStartTime = minStartTime;
 		this.maxStartTime = maxStartTime;
 		this.quantity = quantity;
+		this.minDeliverRate = minDeliverRate;
+		this.maxDeliverRate = maxDeliverRate;
 		this.minSourcePrice = sourcePrice;
 		this.isContinuous = isContinuous;
+		this.isRenewable = isRenewable;
 	}
 	
 	public void setSupplyPlan(double supplyplan, double totalSupplyPlan) {
-		this.supplyPlan = supplyplan;
+		this.deliverRate = supplyplan;
 		this.totalSupplyPlan = totalSupplyPlan;
 	}
 	
@@ -62,7 +75,7 @@ public class SupplyOffer {
 	
 	public void supply() {
 		if (startTime <= PlatformController.standardTime)
-			quantitySupply += supplyPlan * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+			quantitySupply += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 	}
 	
 	
@@ -73,8 +86,8 @@ public class SupplyOffer {
 				maxStartTime + ", sourcePrice: " + minSourcePrice + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchPrice + 
 				", quantitySupply: " + quantitySupply + ", startTime : " + startTime + 
-				", supplyplan: " + supplyPlan + ", total supply plan: " + totalSupplyPlan + 
-				"]");
+				", deliverrate: " + deliverRate + ", total supply plan: " + totalSupplyPlan + 
+				", renewable energy: " + isRenewable + "]");
 	}
 
 }

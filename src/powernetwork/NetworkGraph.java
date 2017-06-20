@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class NetworkGraph {
 	public HashMap<Integer, HashMap<Integer, List<Branch>>> graph = new HashMap<>();
-	public HashMap<Integer, Integer> bus = new HashMap<>(); // (bus, basevotage)
+	public HashMap<Integer, int[]> bus = new HashMap<>(); // (bus, [basevotage, zoneid])
 	public List<Branch> branch = new ArrayList<>(); // A complete list of branches
 	public double[] capacities = {200, 500}; // capacity in MW for 138kV and 345kV transmission lines
 	public double baseMVA = 100; // baseMVA = 100 MVA
@@ -33,13 +33,13 @@ public class NetworkGraph {
 		String s = "";
 		int id = 0;
 		
-		
 		// Read bux.txt and branch.txt into arraylists
 		try {
 			reader = new BufferedReader(new FileReader("bus.txt"));
 			while ((s = reader.readLine()) != null) {
 				String[] value = s.split("\\s+");
-				bus.put(Integer.parseInt(value[0]), Integer.parseInt(value[1]));
+				int[] feature = new int[]{Integer.parseInt(value[1]), Integer.parseInt(value[2])};
+				bus.put(Integer.parseInt(value[0]), feature);
 			}
 			
 			reader.close();
@@ -77,8 +77,8 @@ public class NetworkGraph {
 			double resistancePU = link.get(2);
 			double resistance = 0;
 			double capacity = 0;
-			int vol1 = bus.get(bus1);
-			int vol2 = bus.get(bus2);
+			int vol1 = bus.get(bus1)[0];
+			int vol2 = bus.get(bus2)[0];
 			
 			
 			if (vol1 != vol2 && resistancePU > 0) {

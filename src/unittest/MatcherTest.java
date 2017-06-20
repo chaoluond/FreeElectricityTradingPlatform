@@ -26,7 +26,7 @@ public class MatcherTest {
 			for (int busid : SupplyDemandMatcher.suppliers)
 				SupplyDemandMatcher.busPool.get(busid).currSupply.print();
 			
-			matcher.match();
+			matcher.matchVersion2();
 			
 			System.out.println("After match, demandiers: ");
 			for (int busid : SupplyDemandMatcher.demanders)

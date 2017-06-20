@@ -14,14 +14,16 @@ import supplydemandmatch.SupplyDemandMatcher;
  */
 public class Bus {
 	public int busid; // the bus id used in the power network
+	public int zoneid; // the zone id of the bus
 	public double aggreDemand; // Aggregated demand from past
 	public DemandBid currBid; // The current bid including matched or unmatched
 	public double aggreSupply; // aggregated supply from the past
 	public SupplyOffer currSupply; // Current supply offer
 	public Random ran; // random number generator
 	
-	public Bus(int busid) {
+	public Bus(int busid, int zoneid) {
 		this.busid = busid;
+		this.zoneid = zoneid;
 		aggreDemand = 0;
 		aggreSupply = 0;
 		currBid = null;
@@ -126,10 +128,13 @@ public class Bus {
 		double sourcePrice = PlatformController.minSourcePriceBid + ran.nextDouble() * (PlatformController.maxSourcePriceBid - 
 				PlatformController.minSourcePriceBid);
 		
+		int step = 1 + ran.nextInt(PlatformController.powerPlanRange);
+		double deliverRate = quantity / step 
+				/ (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 		
 		
 		DemandBid db = new DemandBid(bidid, busid, PlatformController.standardTime, 
-				minStartTime, maxStartTime, quantity, sourcePrice, isContinuous);
+				minStartTime, maxStartTime, quantity, deliverRate, sourcePrice, isContinuous);
 		
 		return db;
 	}
@@ -160,12 +165,30 @@ public class Bus {
 		}
 		
 		boolean isContinuous = true; // Supply continuous power
-		double sourcePrice = PlatformController.minSourcePriceOffer + ran.nextDouble() * (PlatformController.maxSourcePriceOffer - 
-				PlatformController.minSourcePriceOffer);
+		boolean isRenewable = false; // Not renewable energy
+		double sourcePrice = PlatformController.minSourcePriceOffer + ran.nextDouble() * 
+				(PlatformController.maxSourcePriceOffer - PlatformController.minSourcePriceOffer);
+		
+		
+		int step1 = 1 + ran.nextInt(PlatformController.powerPlanRange);
+		int step2 = 1 + ran.nextInt(PlatformController.powerPlanRange / 2);
+		int stepMin = (int)Math.min(step1, step2);
+		int stepMax = (int)Math.max(step1, step2);
+		double minDeliverRate = quantity / stepMax / 
+				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+		double maxDeliverRate = quantity / stepMin / 
+				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+		
 		
 		SupplyOffer so = new SupplyOffer(offerid, busid, PlatformController.standardTime, 
-				minStartTime, maxStartTime, quantity, sourcePrice, isContinuous);
+				minStartTime, maxStartTime, quantity, minDeliverRate, maxDeliverRate,
+				sourcePrice, isContinuous, isRenewable);
 		
 		return so;
+	}
+	
+	
+	public void print() {
+		System.out.println("Bus id: " + busid + "  Zone id: " + zoneid);
 	}
 }

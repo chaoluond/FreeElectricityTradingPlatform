@@ -24,7 +24,7 @@ public class PlatformController {
 	 */
 	
 	public static final long min2hour = 60; // One hour is equal to 60 minutes
-	public static int powerPlanRange = 10; // The range for power plan 
+	public static int powerPlanRange = 6; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
 	public static int numInterval = 2880; // The number of intervals
@@ -42,7 +42,20 @@ public class PlatformController {
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
 	public static double minSourcePriceOffer = 5; // Min source price for offer
 	public static double deliverPrice = 10; // 
+	public static int zoneNum = 3; // Number of zones
 	public static int maxRoute = 2; // The max number of routes returned
+	
+	/*
+	 * Parameters for ranking algorithm
+	 */
+	public static double alpha1 = 0.25; // Parameter for source price gap
+	public static double alpha2 = 0.25; // Parameter for deliver price
+	public static double alpha3 = 0.25; // Parameter for zone
+	public static double alpha4 = 0.25; // Parameter for renewable energy
+	public static double[] gammaIn = new double[]{1, 1.5, 2}; // Congestion penalty for incoming demand
+	public static double[] gammaOut = new double[]{1, 1.5, 2}; // congestion penalty for outgoing supply
+	public static double threshold1 = 0.8; // The threshold for incoming demand or outgoing supply capacity penatly
+	public static double threshold2 = 0.9; // The threshold for ....
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
@@ -62,7 +75,7 @@ public class PlatformController {
 		for (int step = 0; step < numInterval; step++) {
 			System.out.println("Iteration #: " + step);
 			System.out.println("Do match here!");
-			matcher.match();
+			matcher.matchVersion2();
 			
 			System.out.println("Generate SD pairs for optimizaiton");
 			List<SDPair> pairs = matcher.generateSDPairs();
