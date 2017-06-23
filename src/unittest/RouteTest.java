@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import cern.colt.Arrays;
 import powernetwork.NetworkGraph;
 import powernetwork.Route;
 import powernetwork.RouteUtility;
@@ -16,6 +17,7 @@ public class RouteTest {
 		
 		NetworkGraph network = new NetworkGraph();
 		SupplyDemandMatcher matcher = new SupplyDemandMatcher(network, 118);
+		
 		//System.out.println("number of branches : " + network.numBranch);
 		//System.out.println(network.branch.get(network.branch.size() - 1).id);
 		//List<Route> routes = RouteUtility.findAllRoutes(network, 8, 100, 5);

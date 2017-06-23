@@ -16,6 +16,7 @@ import centralmanagment.PlatformController;
 import powernetwork.Branch;
 import powernetwork.NetworkGraph;
 import powernetwork.Route;
+import supplydemandmatch.SupplyDemandMatcher;
 
 
 public class FlowOptimizer {
@@ -30,6 +31,9 @@ public class FlowOptimizer {
 	List<BranchFlow> branchflows; // The flows for each branch
 	public double[] solution; // The solution from solve()
 	public int numHops; // The total number of hops = the number of branches
+	public HashMap<Integer, List<int[]>> branchIndex;
+	public List<Integer> branchList;
+	public HashMap<String, Integer> ind2Pind;
 	
 	public FlowOptimizer(NetworkGraph network, List<SDPair> pairs) {
 		this.network = network;
@@ -42,7 +46,7 @@ public class FlowOptimizer {
 		// Compute all branches involved in the delivery. 
 		// int[0] --- SD pair id, int[1] --- route id, int[2] --- branch id
 		// The first integer in the hashtable is the branch id.
-		HashMap<Integer, List<int[]>> branchIndex = new HashMap<>();
+		branchIndex = new HashMap<>();
 		for (int k = 0; k < numSD; k++) {
 			SDPair pair = pairs.get(k);
 			List<Route> routes = pair.routes;
@@ -60,14 +64,14 @@ public class FlowOptimizer {
 		}
 		
 		
-		List<Integer> branchList = new ArrayList<>(branchIndex.keySet());
+		branchList = new ArrayList<>(branchIndex.keySet());
 		Collections.sort(branchList);
 		numHops = branchList.size();
 		
 		
 		// Add the mapping from (k, j, i) ----> index used in the P matrix and X vector
 		// This is useful when we construct the constraints in the optimization problem.
-		HashMap<String, Integer> ind2Pind = new HashMap<>();
+		ind2Pind = new HashMap<>();
 		int dim = 0;
 		for (int key : branchList) {
 			for (int[] tuple : branchIndex.get(key)) {
@@ -169,17 +173,13 @@ public class FlowOptimizer {
 		}
 			
 		if (PlatformController.maxRoute == 1)
-			return solveLinearEquation(A, b, branchIndex, branchList, ind2Pind);
-		else {
-			boolean r = solveOptimization(P, A, b, branchIndex, branchList, ind2Pind);
-			computeBranchFlow(branchIndex, branchList, ind2Pind);
-			return r;
-		}
+			return solveLinearEquation();
+		else 
+			return solveOptimization();
 	}
 	
 	
-	private boolean solveLinearEquation(double[][] A, double[] b, HashMap<Integer, List<int[]>> branchIndex, 
-			List<Integer> branchList, HashMap<String, Integer> ind2Pind)  {
+	private boolean solveLinearEquation()  {
 		Matrix lhs = new Matrix(A);
 		Matrix rhs = new Matrix(b, b.length);
 		
@@ -220,14 +220,12 @@ public class FlowOptimizer {
 			}
 		}
 				
-		System.out.println("Power loss is " + computePowerLoss());
+		//System.out.println("Power loss is " + computePowerLoss());
 		return true;
 	}
 	
 	
-	private boolean solveOptimization(double[][] P, double[][] A, double[] b, 
-			HashMap<Integer, List<int[]>> branchIndex, 
-			List<Integer> branchList, HashMap<String, Integer> ind2Pind) {
+	private boolean solveOptimization() {
 		/*
 		 * f(x) = 1 / 2 * x^TPx + q^Tx + r
 		 * s.t. Ax = b
@@ -305,7 +303,7 @@ public class FlowOptimizer {
 		// Get the solution
 		solution = opt.getOptimizationResponse().getSolution();
 		
-		System.out.println("Power loss is " + computePowerLoss());
+		//System.out.println("Power loss is " + computePowerLoss());
 		
 		return true;
 		
@@ -320,7 +318,7 @@ public class FlowOptimizer {
 	}
 	
 	
-	public void computeBranchRouteFlow(HashMap<String, Integer> ind2Pind) {	
+	public void computeBranchRouteFlow() {	
 		/*
 		 * Construct the branch route flow
 		 */
@@ -366,8 +364,7 @@ public class FlowOptimizer {
 	}
 	
 	
-	public void computeBranchFlow(HashMap<Integer, List<int[]>> branchIndex,
-			List<Integer> branchList, HashMap<String, Integer> ind2Pind) {
+	public void computeBranchFlow() {
 		/*
 		 * Construct branch flow
 		 */
@@ -388,15 +385,54 @@ public class FlowOptimizer {
 			
 			BranchFlow bf = new BranchFlow(br.bus1, br.bus2, sum);
 			branchflows.add(bf);
+			//br.updateTotalFlow(sum);
 		}
 		
 		
-		System.out.println("Total powerflow for each branch:");
+		/*System.out.println("Total powerflow for each branch:");
 		for (BranchFlow bf : branchflows) {
 			bf.print();
-		}
+		}*/
 	}
+
 	
+	public HashMap<Integer, Double> computeCongBrchFlow() {
+		
+		HashMap<Integer, Double> result = new HashMap<>();
+		
+		HashMap<Integer, Integer> supplydemandpairs = SupplyDemandMatcher.supplydemandpairs;
+		
+		for (int i = 0; i < PlatformController.congestionBranch.length; i++) {
+			int brchid = PlatformController.congestionBranch[i];
+			double sum = 0;
+			if (branchIndex.containsKey(brchid)) {// we only consider the congestion branch involved in last delivery
+				List<int[]> components = branchIndex.get(brchid);
+				for (int[] tuple : components) {
+					SDPair pair = pairs.get(tuple[0]);
+					int supplyBusid = pair.supplyBus;
+					int demandBusid = pair.demandBus;
+					if (!supplydemandpairs.containsKey(supplyBusid) || supplydemandpairs.get(supplyBusid) != demandBusid) {
+						//System.out.println("Next interval does not include this SD pair!");
+						continue;
+					}
+					
+					String key = tuple[0] + "+" + tuple[1] + "+" + tuple[2];
+					if (!ind2Pind.containsKey(key))
+						System.out.println("Error!");
+					
+					int ind = ind2Pind.get(key);
+					sum += solution[ind];
+				}
+			}
+			
+			result.put(brchid, sum);
+			//System.out.println("congestion br id: " + brchid + ", totalSum: " + sum);
+		}
+		
+		return result;
+		
+		
+	}
 	
 	
 }

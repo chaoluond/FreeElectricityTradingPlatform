@@ -4,6 +4,7 @@
 package supplydemandmatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,11 +35,11 @@ public class SupplyDemandMatcher {
 	public static HashSet<Integer> demanders;
 	public static HashMap<Integer, Integer> supplydemandpairs;
 	public static HashMap<Integer, Integer> demandsupplypairs;
-	public static boolean haschange;
+	public static HashMap<Integer, Double> congBrchCap; // congestion branch capacity
+	//public static HashMap<Long, HashMap<Integer, Double>> congBFForecast; // The forecast power flow on congestion branches
+	public static HashMap<Integer, Double> congBrchFlow; // The current power flow on congestion branches
+	public static List<SDPair> pairqueue; // SD pairs
 	
-	public double[] zonedemand;
-	public double[] zonesupply;
-	public double[] zonecap;
 	
 	 
 	
@@ -58,27 +59,22 @@ public class SupplyDemandMatcher {
 		demanders = new HashSet<>();
 		supplydemandpairs = new HashMap<>();
 		demandsupplypairs = new HashMap<>();
-		haschange = false;
-		zonedemand = new double[PlatformController.zoneNum];
-		zonesupply = new double[PlatformController.zoneNum];
-		zonecap = new double[PlatformController.zoneNum];
+		congBrchCap = new HashMap<>();
+		congBrchFlow = new HashMap<>();
 		
-		// intialize zonecap
-		for (Branch brch : network.branch) {
-			Bus fromBus = busPool.get(brch.bus1);
-			Bus toBus = busPool.get(brch.bus2);
-			
-			if (fromBus.zoneid != toBus.zoneid) {
-				zonecap[fromBus.zoneid - 1] += brch.capacity / 2.0;
-				zonecap[toBus.zoneid - 1] += brch.capacity / 2.0;
-			}
+		// initialize congBrchCap
+		for (int id : PlatformController.congestionBranch) {
+			double cap = network.branch.get(id).capacity;
+			congBrchCap.put(id, cap);
+			congBrchFlow.put(id, 0.0);
 		}
+		
+		pairqueue = new ArrayList<>();
 		
 	}
 	
 	public void matchVersion2() {
-		updateZoneFlow();
-		
+				
 		for (Iterator<Integer> i = demanders.iterator(); i.hasNext(); ) {
 			int demandbusid = i.next();
 			Bus demandBus = busPool.get(demandbusid);
@@ -91,7 +87,6 @@ public class SupplyDemandMatcher {
 				suppliers.remove(supplybusid);
 				supplydemandpairs.put(supplybusid, demandbusid);
 				demandsupplypairs.put(demandbusid, supplybusid);
-				haschange = true;
 				
 				
 				// determine start time
@@ -136,7 +131,6 @@ public class SupplyDemandMatcher {
 					j.remove();
 					supplydemandpairs.put(supplybusid, demandbusid);
 					demandsupplypairs.put(demandbusid, supplybusid);
-					haschange = true;
 					
 					// determine start time
 					long startTime = 0;
@@ -164,36 +158,7 @@ public class SupplyDemandMatcher {
 		}
 	}
 	
-	
-	public List<SDPair> generateSDPairs() {
-		
-		List<SDPair> pairs = new ArrayList<>();
-		for (int supplyBus : supplydemandpairs.keySet()) {
-			int demandBus = supplydemandpairs.get(supplyBus);
-			List<Route> routes = RouteUtility.findAllRoutes(network, supplyBus, 
-					demandBus, PlatformController.maxRoute);
-			double delrate = busPool.get(demandBus).currBid.deliverRate;
-			SDPair pair = new SDPair(supplyBus, demandBus, delrate, routes);
-			pairs.add(pair);
-		}
-		
-		return pairs;
-	}
-	
-	private void updateZoneFlow() {
-		zonedemand = new double[PlatformController.zoneNum];
-		zonesupply = new double[PlatformController.zoneNum];
-		
-		for (int supplykey : supplydemandpairs.keySet()) {
-			int demandkey = supplydemandpairs.get(supplykey);
-			Bus supplyBus = busPool.get(supplykey);
-			Bus demandBus = busPool.get(demandkey);
-			if (demandBus.zoneid != supplyBus.zoneid) {
-				zonedemand[demandBus.zoneid - 1] += demandBus.currBid.deliverRate;
-				zonesupply[supplyBus.zoneid - 1] += supplyBus.currSupply.deliverRate;
-			}
-		}
-	}
+
 	
 	private boolean matchHelper(Bus demandBus, Bus supplyBus) {
 		
@@ -231,20 +196,24 @@ public class SupplyDemandMatcher {
 		double alpha4 = PlatformController.alpha4;
 		double upperbound = PlatformController.maxSourcePriceBid;
 		double lowerbound = PlatformController.minSourcePriceOffer;
-		double[] gammaIn = PlatformController.gammaIn;
-		double[] gammaOut = PlatformController.gammaOut;
+		double[] gamma = PlatformController.gamma;
 		int maxQuantity = PlatformController.maxQuantity;
 		double threshold1 = PlatformController.threshold1;
 		double threshold2 = PlatformController.threshold2;
 		double maxSourcePriceGap = upperbound - lowerbound;
-		double maxDeliverCost = gammaIn[2] * gammaOut[2] * (maxQuantity / 
+		double maxDeliverCost = gamma[2] * (maxQuantity / 
 				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour));
 		
 		
 		
 		// Filter out unqualified suppliers
 		List<SupplyBusScore> list = new ArrayList<>();
+		boolean ignore = false;
+		boolean maxgamma = false;
+		double delrate = demandBus.currBid.deliverRate;
 		for (int j : suppliers) {
+			ignore = false;
+			maxgamma = false;
 			Bus supplyBus = busPool.get(j);
 			if (matchHelper(demandBus, supplyBus)) {
 				double score = 0;
@@ -253,37 +222,52 @@ public class SupplyDemandMatcher {
 						/maxSourcePriceGap);
 				
 				// Compute deliver cost component
-				double mgammaIn = 1;
-				double mgammaOut = 1;
+				double mgamma = 1;
+				List<Route> routes = RouteUtility.findAllRoutes(network, supplyBus.busid, 
+						demandBus.busid, PlatformController.maxRoute);
 				
-				double delrate = demandBus.currBid.deliverRate;
-				if (demandBus.zoneid != supplyBus.zoneid) {
-					double totalDed = delrate + zonedemand[demandBus.zoneid - 1];
-					double totalSup = delrate + zonesupply[supplyBus.zoneid - 1];
-					if (totalDed >= threshold1 * zonecap[demandBus.zoneid - 1] && 
-							totalDed < threshold2 * zonecap[demandBus.zoneid - 1]) {
-						System.out.println("Zone id " + demandBus.zoneid + ", demand exceeds 80% capacity!");
-						mgammaIn = gammaIn[1];
-					}
-					else if (totalDed >= threshold2 * zonecap[demandBus.zoneid - 1]) {
-						System.out.println("Zone id " + demandBus.zoneid + ", demand exceeds 90% capacity!");
-						mgammaIn = gammaIn[2];
-					}
-					
-					
-					if (totalSup >= threshold1 * zonecap[supplyBus.zoneid - 1] && 
-							totalSup < threshold2 * zonecap[supplyBus.zoneid - 1]) {
-						System.out.println("Zone id " + supplyBus.zoneid + ", supply exceeds 80% capacity!");
-						mgammaOut = gammaOut[1];
-					}
-					else if (totalSup >= threshold2 * zonecap[supplyBus.zoneid - 1]) {
-						System.out.println("Zone id " + supplyBus.zoneid + ", supply exceeds 90% capacity!");
-						mgammaOut = gammaOut[2];
-					}
+				for (Route rou : routes) {
+					for (Branch bran : rou.route) {
+						int branid = bran.id;
+						if (PlatformController.congBrchSet.contains(branid)) {
+							// There is a problem to compute aggregated congBrchFlow???
+							double total = delrate + congBrchFlow.get(branid);
+							if (total >= threshold1 * congBrchCap.get(branid) && 
+									total < threshold2 * congBrchCap.get(branid)) {
+								System.out.println("Use congestion branch id: " + branid + ". Exceed 80% capacity");
+								mgamma = gamma[1];
+							}
+							else if (total >= threshold2 * congBrchCap.get(branid) && 
+									total < congBrchCap.get(branid)) {
+								System.out.println("Use congestion branch id: " + branid + ". Exceed 90% capacity");
+								mgamma = gamma[2];
+								maxgamma = true;
+							}
+							else if (total >= congBrchCap.get(branid)) {
+								System.out.println("Use congestion branch id: " + branid + ". Exceed 100% capacity. "
+										+ "Ignore this pair.");
+								ignore = true;
+							}
+						}
 						
+						if (maxgamma || ignore)
+							break;
+						
+					}
+					
+					if (maxgamma || ignore)
+						break;
 				}
 				
-				score += alpha2 * (mgammaIn * mgammaOut * demandBus.currBid.deliverRate / maxDeliverCost);
+				if (ignore) {
+					System.out.println("Exceed capacity! Ignore this pair!");
+					continue;
+				}
+				
+				
+				
+				
+				score += alpha2 * (mgamma * demandBus.currBid.deliverRate / maxDeliverCost);
 				
 				
 				// Compute inter-zone and intra-zone cost
@@ -296,7 +280,7 @@ public class SupplyDemandMatcher {
 					score += alpha4;
 				
 				
-				SupplyBusScore busscore = new SupplyBusScore(j, score);
+				SupplyBusScore busscore = new SupplyBusScore(j, score, routes);
 				list.add(busscore);
 			}
 		}
@@ -318,8 +302,27 @@ public class SupplyDemandMatcher {
 				
 			});
 			
+			/*System.out.println("New ranking result: ");
 			for (SupplyBusScore sbus : list)
 				sbus.print();
+			*/
+			
+			// We have a match. Add this SD pair to list
+			SupplyBusScore winner = list.get(0);
+			
+			SDPair temp = new SDPair(winner.busid, demandBus.busid, delrate, winner.routes);
+			pairqueue.add(temp);
+			
+			
+			// update congbrchflow
+			for (Route rou : winner.routes) {
+				List<Branch> branches = rou.route;
+				for (Branch bran : branches) {
+					int branid = bran.id;
+					if (congBrchFlow.containsKey(branid))
+						congBrchFlow.put(branid, congBrchFlow.get(branid) + delrate);
+				}
+			}
 			
 			return list.get(0).busid;
 		}
@@ -327,17 +330,34 @@ public class SupplyDemandMatcher {
 	}
 	
 
+	public List<SDPair> computeCurrSDPairs() {// generate the SD pairs for the current interval
+		List<SDPair> result = new ArrayList<>();
+		for (SDPair pair : pairqueue) {
+			int demandBusId = pair.demandBus;
+			Bus demandBus = busPool.get(demandBusId);
+			if (demandBus.currBid.startTime <= PlatformController.standardTime)
+				result.add(pair);
+		}
+		
+		return result;
+	}
+	
 	class SupplyBusScore {
 		public int busid;
 		public double score;
+		public List<Route> routes;
 		
-		public SupplyBusScore(int busid, double score) {
+		public SupplyBusScore(int busid, double score, List<Route> routes) {
 			this.busid = busid;
 			this.score = score;
+			this.routes = routes; 
 		}
 		
 		public void print() {
 			System.out.println("bus id: " + busid + ", score is " + score);
+			/*System.out.println("Routes are: ");
+			for (Route r : routes)
+				r.print();*/
 		}
 	}
 	

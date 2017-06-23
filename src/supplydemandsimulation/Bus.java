@@ -3,9 +3,11 @@
  */
 package supplydemandsimulation;
 
+import java.util.Iterator;
 import java.util.Random;
 
 import centralmanagment.PlatformController;
+import flowoptimizer.SDPair;
 import supplydemandmatch.SupplyDemandMatcher;
 
 /**
@@ -55,7 +57,17 @@ public class Bus {
 						System.out.println("demandsupplypairs hashtable error!");
 					
 					SupplyDemandMatcher.demandsupplypairs.remove(busid);
-					SupplyDemandMatcher.haschange = true;
+					
+					// delete the corresponding SD pair from the pairqueue
+					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext();) {
+						SDPair curr = iter.next();
+						if (curr.demandBus == busid) {
+							iter.remove();
+							break;
+						}
+							
+					}
+					
 				}
 				else {
 					currBid.receive();
@@ -79,7 +91,15 @@ public class Bus {
 						System.out.println("supplydemandpairs hashtable error");
 					
 					SupplyDemandMatcher.supplydemandpairs.remove(busid);
-					SupplyDemandMatcher.haschange = true;
+					
+					// delete corresponding SD pair from pairqueue
+					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
+						SDPair curr = iter.next();
+						if (curr.supplyBus == busid) {
+							iter.remove();
+							break;
+						}
+					}
 					
 				}
 				else

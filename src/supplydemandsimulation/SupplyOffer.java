@@ -80,10 +80,11 @@ public class SupplyOffer {
 	
 	
 	public void print() {
-		System.out.println("[ Bid id: " + offerid + ", bus id: " + busid + 
-				", bidTime: " + offerTime + ", quantity: " + quantity + 
+		System.out.println("[ Offer id: " + offerid + ", bus id: " + busid + 
+				", offerTime: " + offerTime + ", quantity: " + quantity + 
 				", minTime: " + minStartTime + ", maxTime: " + 
-				maxStartTime + ", sourcePrice: " + minSourcePrice + ", isContinuous: " + 
+				maxStartTime + ", sourcePrice: " + minSourcePrice + ", mindeliverrate: " + minDeliverRate +
+				", maxdeliverrate: " + maxDeliverRate + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchPrice + 
 				", quantitySupply: " + quantitySupply + ", startTime : " + startTime + 
 				", deliverrate: " + deliverRate + ", total supply plan: " + totalSupplyPlan + 

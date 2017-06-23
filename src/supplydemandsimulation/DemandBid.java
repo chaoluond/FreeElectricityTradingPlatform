@@ -70,7 +70,7 @@ public class DemandBid {
 				maxStartTime + ", sourcePrice: " + maxSourcePrice + ", isContinuous: " + 
 				isContinuous + ", result: " + result + ", matchPrice: " + matchedPrice + 
 				", quantityRec: " + quantityRec + ", startTime : " + startTime + 
-				", deliver rate: " + deliverRate + "]");
+				", deliverrate: " + deliverRate + "]");
 	}
 }
 

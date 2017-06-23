@@ -17,6 +17,9 @@ public class Branch {
 	public double resistance; // resitance between bus 1 and bus 2 in Ohmes
 	public double capacity; // the capacity for this branch in MW
 	public int id; // branch id in the network;
+	public double avgFlow; // average branch flow (in MW)
+	public int totalCount; // usage counter
+	public double flow2capratio; // avgFlow / capacity
 	
 	
 	public Branch(int bus1, int bus2, double volbase1, double volbase2, 
@@ -28,5 +31,31 @@ public class Branch {
 		this.resistance = resistance;
 		this.capacity = capacity;
 		this.id = id;
+		avgFlow = 0;
+		totalCount = 0;
+		flow2capratio = 0;
+	}
+	
+	/*
+	 * This function is to get the branch flow statistics
+	 */
+	public void updateTotalFlow(double flow) {
+		avgFlow = (avgFlow * totalCount + flow) / (totalCount + 1);
+		totalCount++;
+	}
+	
+	public void computeRatio() {
+		flow2capratio = avgFlow / capacity;
+	}
+	
+	
+	public void print() {
+		System.out.println("Branch id: " + id + ", fromBus id: " + bus1 + ", toBus id: " + bus2 + 
+				", flow2capratio: " + flow2capratio);
+	}
+	
+	public String toString() {
+		return "Branch id: " + id + ", fromBus id: " + bus1 + ", toBus id: " + bus2 + 
+				", flow2capratio: " + flow2capratio;
 	}
 }

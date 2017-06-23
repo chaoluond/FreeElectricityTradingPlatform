@@ -12,7 +12,7 @@ import powernetwork.NetworkGraph;
 import powernetwork.Route;
 import powernetwork.RouteUtility;
 
-public class MatrixVectorTest {
+public class GeneralTest {
 
 	@Test
 	public void test() {

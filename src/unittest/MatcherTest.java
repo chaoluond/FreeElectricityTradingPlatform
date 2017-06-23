@@ -1,6 +1,8 @@
 package unittest;
 
 
+import java.util.HashSet;
+
 import org.junit.Test;
 
 import centralmanagment.PlatformController;
@@ -12,10 +14,13 @@ public class MatcherTest {
 
 	@Test
 	public void test() {
-		SupplyDemandMatcher matcher = new SupplyDemandMatcher(new NetworkGraph(), 25);
+		SupplyDemandMatcher matcher = new SupplyDemandMatcher(new NetworkGraph(), 118);
+		PlatformController.congBrchSet = new HashSet<>();
 		
-		
-		for (int i = 0; i < 20; i++) {
+		for (int i : PlatformController.congestionBranch)
+			PlatformController.congBrchSet.add(i);
+			
+		for (int i = 0; i < 10; i++) {
 			
 			System.out.println("Iteration:::::::::" + i + ". Standard time: " + PlatformController.standardTime);
 			System.out.println("Demanders: ");
@@ -25,6 +30,7 @@ public class MatcherTest {
 			System.out.println("Suppliers: "); 
 			for (int busid : SupplyDemandMatcher.suppliers)
 				SupplyDemandMatcher.busPool.get(busid).currSupply.print();
+				
 			
 			matcher.matchVersion2();
 			
@@ -44,12 +50,10 @@ public class MatcherTest {
 				SupplyDemandMatcher.busPool.get(SupplyDemandMatcher.demandsupplypairs.get(key)).currSupply.print();
 			}
 			
-			for (Bus bus : SupplyDemandMatcher.busPool) {
-				bus.doWork();
-			}
+			for (int j = 1; j <= matcher.network.bus.size(); j++)
+				SupplyDemandMatcher.busPool.get(j).doWork();
 			
-			PlatformController.standardTime += PlatformController.timeInterval;
-			
+			PlatformController.standardTime += PlatformController.timeInterval;	
 		
 		}
 		
