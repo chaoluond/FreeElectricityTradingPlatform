@@ -19,6 +19,7 @@ public class SupplyOffer {
 	public long startTime; // The matched start time
 	public double minSourcePrice; // The minimum unit price ($/MWh) the supplier would like to receive from the user
 	public double matchPrice; // The matched price
+	public int deliverInterval = 0; // The number of intervals to deliver electricity
 	/*
 	 * isContinuous == true ----> supply continuous and stable power
 	 * isContinuous == false ----> supply discontinuous power
@@ -58,6 +59,10 @@ public class SupplyOffer {
 		this.minSourcePrice = sourcePrice;
 		this.isContinuous = isContinuous;
 		this.isRenewable = isRenewable;
+	}
+	
+	public void setDeliverInterval(int interval) {
+		deliverInterval = interval;
 	}
 	
 	public void setSupplyPlan(double supplyplan, double totalSupplyPlan) {

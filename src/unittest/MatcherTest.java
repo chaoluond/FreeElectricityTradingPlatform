@@ -20,7 +20,7 @@ public class MatcherTest {
 		for (int i : PlatformController.congestionBranch)
 			PlatformController.congBrchSet.add(i);
 			
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 5; i++) {
 			
 			System.out.println("Iteration:::::::::" + i + ". Standard time: " + PlatformController.standardTime);
 			System.out.println("Demanders: ");

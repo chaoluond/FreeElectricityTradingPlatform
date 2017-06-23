@@ -27,8 +27,8 @@ public class FlowOptimizer {
 	public double[][] P; // matrix P for quadratic programming
 	public double[][] A; // matrix A for quadratic programming
 	public double[] b; // vector b for quadratic programming
-	List<List<List<BranchRouteFlow>>> brchrouteflows; // The solution for power flow. For each SD pair, each route, each branch
-	List<BranchFlow> branchflows; // The flows for each branch
+	public List<List<List<BranchRouteFlow>>> brchrouteflows; // The solution for power flow. For each SD pair, each route, each branch
+	public List<BranchFlow> branchflows; // The flows for each branch
 	public double[] solution; // The solution from solve()
 	public int numHops; // The total number of hops = the number of branches
 	public HashMap<Integer, List<int[]>> branchIndex;
@@ -295,7 +295,7 @@ public class FlowOptimizer {
 		}
 		
 		
-		System.out.println("Returncode = " + returncode);
+		//System.out.println("Returncode = " + returncode);
 		if (returncode == -1)
 			return false;
 		

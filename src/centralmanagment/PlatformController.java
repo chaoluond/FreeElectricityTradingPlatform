@@ -5,8 +5,11 @@ package centralmanagment;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 import flowoptimizer.FlowOptimizer;
@@ -32,16 +35,14 @@ public class PlatformController {
 	public static int powerPlanRange = 20; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 30; // The number of intervals
-	public static double pGenerate = 0.8; // the probability that this bus will generate a new bid or offer is 90%
+	public static int numInterval = 20; // The number of intervals
+	public static double pGenerate = 0.5; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 5; // the start time range used in Demand bid generation
-	public static int timeRangeOffer = 2; // the start time range used in supply offer generation
+	public static int timeRangeOffer = 5; // the start time range used in supply offer generation
 	public static int minQuantity = 40; // Min electricity demand is 20 MWh
 	public static int maxQuantity = 70; // Max electricity demand is 200 MWh
 	public static int bidid = 0; // global bid id counter
 	public static int offerid = 0; // global offer id counter
-	public static Semaphore bididlock = new Semaphore(1); // lock for bids
-	public static Semaphore offeridlock = new Semaphore(1); // lock for offer;
 	public static double maxSourcePriceBid = 10; // Max source price for bid 
 	public static double minSourcePriceBid = 5; // Min source price for bid 
 	public static double maxSourcePriceOffer = 10; // Max source price for offer
@@ -51,14 +52,15 @@ public class PlatformController {
 	public static int maxRoute = 2; // The max number of routes returned
 	public static int[] congestionBranch = {237, 156, 236, 303, 315, 211, 255, 257, 210, 215}; // The congestion branch id
 	public static HashSet<Integer> congBrchSet;
+	public static int maxwait = 2; // The max number of waits for matching
 	
 	/*
 	 * Parameters for ranking algorithm
 	 */
-	public static double alpha1 = 0; // Parameter for source price gap
-	public static double alpha2 = 1; // Parameter for deliver price
-	public static double alpha3 = 0; // Parameter for zone
-	public static double alpha4 = 0; // Parameter for renewable energy
+	public static double alpha1 = 0.0; // Parameter for source price gap
+	public static double alpha2 = 1.0; // Parameter for deliver price
+	public static double alpha3 = 0.0; // Parameter for zone
+	public static double alpha4 = 0.0; // Parameter for renewable energy
 	public static double[] gamma = new double[]{1, 1.5, 2}; // Congestion penalty parameter
 	public static double threshold1 = 0.7; // The threshold for incoming demand or outgoing supply capacity penatly
 	public static double threshold2 = 0.9; // The threshold for ....
@@ -79,10 +81,11 @@ public class PlatformController {
 	
 	
 	public void run() {
+		int crashcount = 0;
 		for (int step = 0; step < numInterval; step++) {
 			System.out.println("Iteration #: " + step);
 			//System.out.println("Do match here!");
-			matcher.matchVersion2();
+			matcher.matchVersion3();
 			
 			//System.out.println("Generate SD pairs for optimization");
 			List<SDPair> pairs = matcher.computeCurrSDPairs();
@@ -102,13 +105,27 @@ public class PlatformController {
 				SupplyDemandMatcher.busPool.get(i).doWork();
 			
 			//System.out.println("Update model standard time");
-			PlatformController.standardTime += PlatformController.timeInterval;
+			standardTime += timeInterval;
 			
-			System.out.println("Update congestion branch flow for next interval");
-			if (result) {
+			/*System.out.println("Update congestion branch flow for next interval");
+			if (result) 
 				SupplyDemandMatcher.congBrchFlow = foper.computeCongBrchFlow();
+			else
+			*/
+			if (!result)
+				crashcount++;
+			
+			// Delete stale record in congBFForecast
+			for (Iterator<Map.Entry<Long, HashMap<Integer, Double>>> iter = 
+					SupplyDemandMatcher.congBFForecast.entrySet().iterator(); iter.hasNext(); ) {
+				Map.Entry<Long, HashMap<Integer, Double>> forecast = iter.next();
+				if (forecast.getKey() < standardTime)
+					iter.remove();
 			}
+			
 		}
+		
+		System.out.println("Crash probability is " + crashcount * 1.0 / numInterval);
 		
 		/*double avgpowloss = plsum / countfeasible;
 		double avgnumhop = totalHops * 1.0 / countfeasible;

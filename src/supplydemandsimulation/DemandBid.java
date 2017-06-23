@@ -19,7 +19,8 @@ public class DemandBid {
 	public long startTime;// The matched start time 
 	public double maxSourcePrice; // The maximum unit price ($/MW) the bidder would like to pay to the power generator
 	public double matchedPrice; // Matched source price ($/MW)
-	public double deliverPrice; // The unit price ($/MW) the bidder would like to pay to the distribution company  
+	public double deliverPrice; // The unit price ($/MW) the bidder would like to pay to the distribution company 
+	public int deliverInterval = 0; // The number of intervals to deliver electricity;
 	
 	/*isContinuous == true ---- only accept continuous stable electricity supply
 	 *isContinuous == false ----- accept both continuous and discontinuous electricity supply
@@ -36,7 +37,8 @@ public class DemandBid {
 	public double deliverRate = 0; // request power delivery rate (in MW) during each horizon. 
 	
 	public DemandBid(int bidid, int busid, long bidTime, long minStartTime, 
-			long maxStartTime, double quantity, double deliverRate, double maxPrice, boolean isContinuous) {
+			long maxStartTime, double quantity, double deliverRate, int deliverInterval, 
+			double maxPrice, boolean isContinuous) {
 		this.bidid = bidid;
 		this.busid = busid;
 		this.bidTime = bidTime;
@@ -44,6 +46,7 @@ public class DemandBid {
 		this.maxStartTime = maxStartTime;
 		this.quantity = quantity;
 		this.deliverRate = deliverRate;
+		this.deliverInterval = deliverInterval;
 		this.maxSourcePrice = maxPrice;
 		this.isContinuous = isContinuous;
 	}

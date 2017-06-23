@@ -22,6 +22,7 @@ public class Bus {
 	public double aggreSupply; // aggregated supply from the past
 	public SupplyOffer currSupply; // Current supply offer
 	public Random ran; // random number generator
+	public int waitcount; // The number of waits for matching
 	
 	public Bus(int busid, int zoneid) {
 		this.busid = busid;
@@ -31,6 +32,7 @@ public class Bus {
 		currBid = null;
 		currSupply = null;
 		ran = new Random();
+		waitcount = 0;
 	}
 	
 	public void doWork() {
@@ -52,14 +54,19 @@ public class Bus {
 				if (currBid.quantityRec >= currBid.quantity) {// This delivery is finished
 					aggreDemand += currBid.quantityRec;
 					currBid = null;
-					// TODO by Chao, [Jun 4, 2017, 11:31:56 AM]. Synchronize this operation
+					
+					// Sanity check
 					if (!SupplyDemandMatcher.demandsupplypairs.containsKey(busid))
 						System.out.println("demandsupplypairs hashtable error!");
 					
+					
+					/*
+					 * Clean work
+					 */
 					SupplyDemandMatcher.demandsupplypairs.remove(busid);
 					
 					// delete the corresponding SD pair from the pairqueue
-					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext();) {
+					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
 						SDPair curr = iter.next();
 						if (curr.demandBus == busid) {
 							iter.remove();
@@ -69,15 +76,20 @@ public class Bus {
 					}
 					
 				}
-				else {
+				else {// This delivery is not finished.
 					currBid.receive();
 				}
 			}
-			else {
+			else {// This demand bid does not have a match
 				// check if the current bid has expired
-				if (currBid.maxStartTime <= PlatformController.standardTime) {
+				if (waitcount >= PlatformController.maxwait || 
+						currBid.maxStartTime <= PlatformController.standardTime) {
+					waitcount = 0;
 					currBid = null;
 					SupplyDemandMatcher.demanders.remove(busid);
+				}
+				else {
+					waitcount++;
 				}
 			}
 		}
@@ -86,7 +98,12 @@ public class Bus {
 				if (currSupply.quantitySupply >= currSupply.totalSupplyPlan) {// This delivery is finished
 					aggreSupply += currSupply.quantitySupply;
 					currSupply = null;
-					// TODO by Chao, [Jun 4, 2017, 11:48:06 AM]. Synchronize this operation
+
+
+					/*
+					 * Clean work
+					 */
+					// Sanity check
 					if (!SupplyDemandMatcher.supplydemandpairs.containsKey(busid))
 						System.out.println("supplydemandpairs hashtable error");
 					
@@ -105,12 +122,17 @@ public class Bus {
 				else
 					currSupply.supply();
 			}
-			else {
+			else {// This supply offer does not have a match.
 				// Check if this supply offer has expired
-				if (currSupply.maxStartTime <= PlatformController.standardTime) {
+				if (waitcount >= PlatformController.maxwait ||
+						currSupply.maxStartTime <= PlatformController.standardTime) {
+					waitcount = 0;
 					currSupply = null;
 					// TODO by Chao, [Jun 4, 2017, 11:53:09 AM]. Synchronize this operation
 					SupplyDemandMatcher.suppliers.remove(busid);
+				}
+				else {
+					waitcount++;
 				}
 			}
 			
@@ -134,27 +156,20 @@ public class Bus {
 		double quantity = ran.nextDouble() * (PlatformController.maxQuantity 
 				- PlatformController.minQuantity) + PlatformController.minQuantity;
 		
-		int bidid = -1;
-		try {
-			PlatformController.bididlock.acquire();
-			bidid = PlatformController.bidid++;
-			PlatformController.bididlock.release();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		int bidid = PlatformController.bidid++;
 		
 		boolean isContinuous = true; // Only accept continuous power delivery
 		double sourcePrice = PlatformController.minSourcePriceBid + ran.nextDouble() * (PlatformController.maxSourcePriceBid - 
 				PlatformController.minSourcePriceBid);
 		
-		int step = 1 + ran.nextInt(PlatformController.powerPlanRange);
-		double deliverRate = quantity / step 
+		// generate delivery interval
+		int deliverInterval = 1 + ran.nextInt(PlatformController.powerPlanRange);
+		double deliverRate = quantity / deliverInterval
 				/ (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 		
 		
 		DemandBid db = new DemandBid(bidid, busid, PlatformController.standardTime, 
-				minStartTime, maxStartTime, quantity, deliverRate, sourcePrice, isContinuous);
+				minStartTime, maxStartTime, quantity, deliverRate, deliverInterval, sourcePrice, isContinuous);
 		
 		return db;
 	}
@@ -162,27 +177,23 @@ public class Bus {
 	
 	public SupplyOffer generateOffer() {
 		// TODO by Chao, [Jun 4, 2017, 7:38:34 PM]. Need to edit this parameter later on!
-		int step = 1 + ran.nextInt(PlatformController.timeRangeOffer);
-		long minStartTime = PlatformController.standardTime + 
-				step * PlatformController.timeInterval;
+		int step1 = 1 + ran.nextInt(PlatformController.timeRangeOffer);
+		int step2 = 1 + ran.nextInt(PlatformController.timeRangeOffer);
 		
-		step = ran.nextInt(PlatformController.timeRangeOffer);
-		long maxStartTime = minStartTime + step * PlatformController.timeInterval;
+		int minStep = Math.min(step1, step2);
+		int maxStep = Math.max(step1, step2);
+		
+		long minStartTime = PlatformController.standardTime + 
+				minStep * PlatformController.timeInterval;
+		
+		long maxStartTime = PlatformController.standardTime + 
+				maxStep * PlatformController.timeInterval;
 		
 		
 		double quantity = ran.nextDouble() * (PlatformController.maxQuantity 
 				- PlatformController.minQuantity) + PlatformController.minQuantity;
 		
-		int offerid = -1;
-		
-		try {
-			PlatformController.offeridlock.acquire();
-			offerid = PlatformController.offerid++;
-			PlatformController.offeridlock.release();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		int offerid = PlatformController.offerid++;
 		
 		boolean isContinuous = true; // Supply continuous power
 		boolean isRenewable = false; // Not renewable energy
@@ -190,13 +201,14 @@ public class Bus {
 				(PlatformController.maxSourcePriceOffer - PlatformController.minSourcePriceOffer);
 		
 		
-		int step1 = 1 + ran.nextInt(PlatformController.powerPlanRange);
-		int step2 = 1 + ran.nextInt(PlatformController.powerPlanRange / 2);
-		int stepMin = (int)Math.min(step1, step2);
-		int stepMax = (int)Math.max(step1, step2);
-		double minDeliverRate = quantity / stepMax / 
+		step1 = 1 + ran.nextInt(PlatformController.powerPlanRange);
+		step2 = 1 + ran.nextInt(PlatformController.powerPlanRange / 2);
+		minStep = Math.min(step1, step2);
+		maxStep = Math.max(step1, step2);
+		
+		double minDeliverRate = quantity / maxStep / 
 				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
-		double maxDeliverRate = quantity / stepMin / 
+		double maxDeliverRate = quantity / minStep / 
 				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 		
 		
