@@ -17,10 +17,12 @@ public class DemandBid {
 	public long minStartTime; // Earliest electricity receiving time in minutes
 	public long maxStartTime; // Latest electricity receiving time in minutes
 	public long startTime;// The matched start time 
+	public long endTime; // The planned endTime
 	public double maxSourcePrice; // The maximum unit price ($/MW) the bidder would like to pay to the power generator
 	public double matchedPrice; // Matched source price ($/MW)
 	public double deliverPrice; // The unit price ($/MW) the bidder would like to pay to the distribution company 
 	public int deliverInterval = 0; // The number of intervals to deliver electricity;
+	public int currDeliverInterval = 0; // The number of interval which has been used to deliver electricity
 	
 	/*isContinuous == true ---- only accept continuous stable electricity supply
 	 *isContinuous == false ----- accept both continuous and discontinuous electricity supply
@@ -60,10 +62,22 @@ public class DemandBid {
 		this.startTime = startTime;
 	}
 	
-	public void receive() {
-		if (startTime <= PlatformController.standardTime)
-			quantityRec += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+	
+	public void setEndTime(long endTime) {
+		this.endTime = endTime;
 	}
+	
+	public void receive() {
+		if (startTime > PlatformController.standardTime)
+			System.out.println("Time error here! Please check receive function!!!!!!");
+		
+		currDeliverInterval++;
+		quantityRec += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+		
+		// update throughput
+		PlatformController.throughput += deliverRate;
+	}
+	
 	
 	
 	public void print() {

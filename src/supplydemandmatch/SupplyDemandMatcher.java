@@ -37,8 +37,9 @@ public class SupplyDemandMatcher {
 	public static HashMap<Integer, Integer> supplydemandpairs;
 	public static HashMap<Integer, Integer> demandsupplypairs;
 	public static HashMap<Integer, Double> congBrchCap; // congestion branch capacity
-	public static HashMap<Long, HashMap<Integer, Double>> congBFForecast; // The forecast power flow on congestion branches
+	//public static HashMap<Long, HashMap<Integer, Double>> congBFForecast; // The forecast power flow on congestion branches
 	public static HashMap<Integer, Double> congBrchFlow; // The current power flow on congestion branches
+	public HashMap<Integer, Double> intCongBrchFlow; // The forecast power flow on congestion branches
 	public static List<SDPair> pairqueue; // SD pairs
 	
 	
@@ -62,7 +63,8 @@ public class SupplyDemandMatcher {
 		demandsupplypairs = new HashMap<>();
 		congBrchCap = new HashMap<>();
 		congBrchFlow = new HashMap<>();
-		congBFForecast = new HashMap<>();
+		//congBFForecast = new HashMap<>();
+		intCongBrchFlow = null;
 		
 		// initialize congBrchCap
 		for (int id : PlatformController.congestionBranch) {
@@ -77,11 +79,16 @@ public class SupplyDemandMatcher {
 	
 	
 	public void matchVersion3() {
+	
 		for (Iterator<Integer> i = demanders.iterator(); i.hasNext(); ) {
 			int demandbusid = i.next();
 			Bus demandBus = busPool.get(demandbusid);
 			int supplybusid = computeBestMatchVersion2(demandBus);
 			if (supplybusid != -1) {
+				
+				// update total number of accepted SD pairs
+				PlatformController.totalAccSDPair++;
+				
 				Bus supplyBus = busPool.get(supplybusid);
 				demandBus.currBid.result = true;
 				supplyBus.currSupply.result = true;
@@ -90,7 +97,7 @@ public class SupplyDemandMatcher {
 				supplydemandpairs.put(supplybusid, demandbusid);
 				demandsupplypairs.put(demandbusid, supplybusid);
 				
-				// determine start time
+				// determine start time (inclusive)
 				long startTime = 0;
 				if (supplyBus.currSupply.minStartTime >= demandBus.currBid.minStartTime && 
 						supplyBus.currSupply.minStartTime <= demandBus.currBid.maxStartTime) 
@@ -102,15 +109,31 @@ public class SupplyDemandMatcher {
 					System.out.println("startTime calculation error!");
 				
 				
+				// determine end time (exclusive)
+				long endTime = startTime + PlatformController.timeInterval * demandBus.currBid.deliverInterval;
+				
+				
 				
 				//determine price
 				double price = supplyBus.currSupply.minSourcePrice;
 				
+				
+				//update average price and average price gap
+				PlatformController.averagePrice += price;
+				PlatformController.averagePriceGap += (demandBus.currBid.maxSourcePrice - price);
+				
+				
+				int delint = demandBus.currBid.deliverInterval;
+				
 				supplyBus.currSupply.setSupplyPlan(demandBus.currBid.deliverRate, demandBus.currBid.quantity);
 				demandBus.currBid.setMatchPrice(price);
+				demandBus.currBid.setEndTime(endTime);
 				supplyBus.currSupply.setMatchPrice(price);
 				demandBus.currBid.setStartTime(startTime);
 				supplyBus.currSupply.setStartTime(startTime);
+				
+				// set planned deliver interval 
+				supplyBus.currSupply.setDeliverInterval(delint);
 				
 			}
 			
@@ -125,6 +148,10 @@ public class SupplyDemandMatcher {
 			Bus demandBus = busPool.get(demandbusid);
 			int supplybusid = computeBestMatchVersion1(demandBus);
 			if (supplybusid != -1) {
+				
+				// update total number of accepted SD pairs
+				PlatformController.totalAccSDPair++;
+				
 				Bus supplyBus = busPool.get(supplybusid);
 				demandBus.currBid.result = true;
 				supplyBus.currSupply.result = true;
@@ -145,13 +172,15 @@ public class SupplyDemandMatcher {
 				else
 					System.out.println("startTime calculation error!");
 				
-				
+				// determine end time
+				long endTime = startTime + PlatformController.timeInterval * demandBus.currBid.deliverInterval;
 				
 				//determine price
 				double price = supplyBus.currSupply.minSourcePrice;
 				
 				supplyBus.currSupply.setSupplyPlan(demandBus.currBid.deliverRate, demandBus.currBid.quantity);
 				demandBus.currBid.setMatchPrice(price);
+				demandBus.currBid.setEndTime(endTime);
 				supplyBus.currSupply.setMatchPrice(price);
 				demandBus.currBid.setStartTime(startTime);
 				supplyBus.currSupply.setStartTime(startTime);
@@ -167,9 +196,15 @@ public class SupplyDemandMatcher {
 			int demandbusid = i.next();
 			Bus demandBus = busPool.get(demandbusid);
 			for (Iterator<Integer> j = suppliers.iterator(); j.hasNext();) {
+			
 				int supplybusid = j.next();
 				Bus supplyBus = busPool.get(supplybusid);
 				if (matchHelper(demandBus, supplyBus)) {
+					
+					// update total number of accepted SD pairs
+					PlatformController.totalAccSDPair++;
+					
+					
 					demandBus.currBid.result = true;
 					supplyBus.currSupply.result = true;
 					i.remove();
@@ -177,7 +212,7 @@ public class SupplyDemandMatcher {
 					supplydemandpairs.put(supplybusid, demandbusid);
 					demandsupplypairs.put(demandbusid, supplybusid);
 					
-					// determine start time
+					// determine start time (inclusive)
 					long startTime = 0;
 					if (supplyBus.currSupply.minStartTime >= demandBus.currBid.minStartTime && 
 							supplyBus.currSupply.minStartTime <= demandBus.currBid.maxStartTime) 
@@ -188,22 +223,43 @@ public class SupplyDemandMatcher {
 					else
 						System.out.println("startTime calculation error!");
 					
+					
+					// determine end time (exclusive)
+					long endTime = startTime + PlatformController.timeInterval * demandBus.currBid.deliverInterval;
+					
+					
 					//determine price
 					double price = supplyBus.currSupply.minSourcePrice;
+					
+					//update average price and average price gap
+					PlatformController.averagePrice += price;
+					PlatformController.averagePriceGap += (demandBus.currBid.maxSourcePrice - price);
+					
+					
+					int delint = demandBus.currBid.deliverInterval;
 				
 					
 					supplyBus.currSupply.setSupplyPlan(demandBus.currBid.deliverRate, demandBus.currBid.quantity);
 					demandBus.currBid.setMatchPrice(price);
+					demandBus.currBid.setEndTime(endTime);
 					supplyBus.currSupply.setMatchPrice(price);
 					demandBus.currBid.setStartTime(startTime);
 					supplyBus.currSupply.setStartTime(startTime);
+					
+					supplyBus.currSupply.setDeliverInterval(delint);
+					
+					
+					// Generate SD pair
+					List<Route> routes = RouteUtility.findAllRoutes(network, supplyBus.busid, 
+							demandBus.busid, PlatformController.maxRoute);
+					SDPair temp = new SDPair(supplyBus.busid, demandBus.busid, demandBus.currBid.deliverRate, routes);
+					pairqueue.add(temp);
 					break;
 				}
 			}
 		}
 	}
 	
-
 	
 	private boolean matchHelper(Bus demandBus, Bus supplyBus) {
 		
@@ -242,22 +298,20 @@ public class SupplyDemandMatcher {
 		double lowerbound = PlatformController.minSourcePriceOffer;
 		double[] gamma = PlatformController.gamma;
 		int maxQuantity = PlatformController.maxQuantity;
-		double threshold1 = PlatformController.threshold1;
-		double threshold2 = PlatformController.threshold2;
+		double multiplier = 1 - PlatformController.currDelayProb;
+		double threshold1 = PlatformController.threshold1 * multiplier;
+		double threshold2 = PlatformController.threshold2 * multiplier;
+		double threshold3 = PlatformController.threshold3 * multiplier;
 		double maxSourcePriceGap = upperbound - lowerbound;
-		double maxDeliverCost = gamma[2] * (maxQuantity / 
+		double maxDeliverCost = gamma[3] * (maxQuantity / 
 				(PlatformController.timeInterval * 1.0 / PlatformController.min2hour));
 		
 		
 		// Filter out unqualified suppliers
 		List<SupplyBusScore> list = new ArrayList<>();
-		boolean ignore = false;
-		boolean maxgamma = false;
 		double delrate = demandBus.currBid.deliverRate;
 		
 		for (int j : suppliers) {
-			ignore = false;
-			maxgamma = false;
 			Bus supplyBus = busPool.get(j);
 			
 			if (matchHelper(demandBus, supplyBus)) {
@@ -282,67 +336,75 @@ public class SupplyDemandMatcher {
 				else
 					System.out.println("startTime calculation error!");
 				
-				if (!congBFForecast.containsKey(startTime)) {// There is no flow forecast for this interval, create a new one
-					
-					int code = forecastCongFlow(startTime);
-					if (code == 2) {// this SD pair is invalid. The network will have been overloaded at time.
-						System.out.println("This SD pair is invalid. The network will have been overloaded at that time.");
-						continue;
-					}
+				
+				
+				
+				// Determine aggregated power flow
+				double mgamma = -1;
+				List<Route> routes = null;
+				int code = forecastCongFlow(startTime);
+				if (code == 2) {// this SD pair is invalid. The network will have been overloaded at time.
+					System.out.println("This SD pair is invalid. The network will have been overloaded at that time.");
+					intCongBrchFlow = null;
+					continue;
 				}
-				
-				
-			//?????????????????????????????????????????????????
-				
-				
-				double mgamma = 1;
-				List<Route> routes = RouteUtility.findAllRoutes(network, supplyBus.busid, 
-						demandBus.busid, PlatformController.maxRoute);
-				
-				if (congBFForecast.containsKey(startTime)) {
-					HashMap<Integer, Double> fore = congBFForecast.get(startTime);
+				else if (code == 0) {// The network is empty at that time
+					intCongBrchFlow = null;
+					mgamma = gamma[0];
+					routes = RouteUtility.findAllRoutes(network, supplyBus.busid, 
+							demandBus.busid, PlatformController.maxRoute);
+				}
+				else {// The network is not empty at that time
+					if (intCongBrchFlow == null)
+						System.out.println("Error happens here!  Please check!!!");
+					
+					routes = RouteUtility.findAllRoutes(network, supplyBus.busid, 
+							demandBus.busid, PlatformController.maxRoute);
+					
+					boolean contFlag = false;
+					
 					for (Route rou : routes) {
 						for (Branch bran : rou.route) {
 							int branid = bran.id;
 							if (PlatformController.congBrchSet.contains(branid)) {
 								// There is a problem to compute aggregated congBrchFlow???
-								double total = delrate + fore.get(branid);
+								double total = delrate + intCongBrchFlow.get(branid);
 								if (total >= threshold1 * congBrchCap.get(branid) && 
 										total < threshold2 * congBrchCap.get(branid)) {
-									//System.out.println("Use congestion branch id: " + branid + ". Exceed 70% capacity");
+									System.out.println("Use congestion branch id: " + branid + ". Exceed 50% capacity");
 									mgamma = gamma[1];
 								}
 								else if (total >= threshold2 * congBrchCap.get(branid) && 
-										total < congBrchCap.get(branid)) {
-									//System.out.println("Use congestion branch id: " + branid + ". Exceed 90% capacity");
+										total < threshold3 * congBrchCap.get(branid)) {
+									System.out.println("Use congestion branch id: " + branid + ". Exceed 75% capacity");
 									mgamma = gamma[2];
-									maxgamma = true;
 								}
-								else if (total >= congBrchCap.get(branid)) {
+								else if (total >= threshold3 * congBrchCap.get(branid)) {
 									System.out.println("Use congestion branch id: " + branid + ". Exceed 100% capacity. "
-											+ "Ignore this pair.");
-									ignore = true;
+											+ "Skip this SD pair candidate.");
+									mgamma = gamma[3];
+									contFlag = true;
 								}
 							}
 							
-							if (maxgamma || ignore)
+							if (contFlag)
 								break;
 							
 						}
 						
-						if (maxgamma || ignore)
+						if (contFlag)
 							break;
 					}
 					
-					if (ignore) {
-						System.out.println("Exceed capacity! Ignore this pair!");
+					intCongBrchFlow = null;
+					
+					if (contFlag)
 						continue;
-					}
-				
+					
 				}
 				
 				
-				score += alpha2 * (mgamma * demandBus.currBid.deliverRate / maxDeliverCost);
+				score += alpha2 * (mgamma * delrate / maxDeliverCost);
 				
 				
 				// Compute inter-zone and intra-zone cost
@@ -391,25 +453,7 @@ public class SupplyDemandMatcher {
 			
 			SDPair temp = new SDPair(winner.busid, demandBus.busid, delrate, winner.routes);
 			pairqueue.add(temp);
-			
-			
-			// update congbrchflow
-			long mStartTime = winner.startTime;
-			
-			
-			if (congBFForecast.containsKey(mStartTime)) {
-				HashMap<Integer, Double> forecast = congBFForecast.get(mStartTime);
-				for (Route rou : winner.routes) {
-					List<Branch> branches = rou.route;
-					for (Branch bran : branches) {
-						int branid = bran.id;
-						if (forecast.containsKey(branid))
-							forecast.put(branid, forecast.get(branid) + delrate);
-					}
-				}
-				
-				congBFForecast.put(mStartTime, forecast);
-			}
+
 			return winner.busid;
 			
 		}
@@ -568,6 +612,20 @@ public class SupplyDemandMatcher {
 				result.add(pair);
 		}
 		
+		Collections.sort(result, new Comparator<SDPair>() {
+			@Override
+			public int compare(SDPair pair1, SDPair pair2) {
+				Bus demandBus1 = busPool.get(pair1.demandBus);
+				Bus demandBus2 = busPool.get(pair2.demandBus);
+				if (demandBus1.currBid.startTime < demandBus2.currBid.startTime)
+					return -1;
+				else if (demandBus1.currBid.startTime > demandBus2.currBid.startTime)
+					return 1;
+				else
+					return 0;
+			}
+		});
+		
 		return result;
 	}
 	
@@ -582,10 +640,16 @@ public class SupplyDemandMatcher {
 		for (SDPair pair : pairqueue) {
 			int demandbusid = pair.demandBus;
 			Bus demandBus = busPool.get(demandbusid);
-			long mStartTime = demandBus.currBid.startTime;
-			int mDeliverInterval = demandBus.currBid.deliverInterval;
-			long mEndTime = mStartTime + PlatformController.timeInterval * mDeliverInterval;
-			if (mStartTime <= startTime && mEndTime >= startTime) {// this SD pair will be active during the considered interval
+			long mStartTime = demandBus.currBid.startTime; // Inclusive
+			long mEndTime = 0; // Exclusive
+			
+			if (mStartTime >= PlatformController.standardTime)
+				mEndTime = mStartTime + demandBus.currBid.deliverInterval * PlatformController.timeInterval;
+			else
+				mEndTime = PlatformController.standardTime + (demandBus.currBid.deliverInterval - 
+					demandBus.currBid.currDeliverInterval) * PlatformController.timeInterval;
+			
+			if (mStartTime <= startTime && mEndTime > startTime) {// this SD pair will be active during the considered interval
 				pairs.add(pair);
 			}
 		}
@@ -598,8 +662,7 @@ public class SupplyDemandMatcher {
 		if (!result)
 			return 2;
 		else {
-			HashMap<Integer, Double> record = fop.computeCongBrchFlow();
-			congBFForecast.put(startTime, record);
+			intCongBrchFlow = fop.computeCongBrchFlow();
 			return 1;
 		}
 		

@@ -19,7 +19,9 @@ public class SupplyOffer {
 	public long startTime; // The matched start time
 	public double minSourcePrice; // The minimum unit price ($/MWh) the supplier would like to receive from the user
 	public double matchPrice; // The matched price
-	public int deliverInterval = 0; // The number of intervals to deliver electricity
+	public int deliverInterval = 0; // The total number of intervals needs to deliver electricity
+	public int currDeliverInterval = 0; // The number of intervals which have been used to deliver electricity
+	
 	/*
 	 * isContinuous == true ----> supply continuous and stable power
 	 * isContinuous == false ----> supply discontinuous power
@@ -79,8 +81,11 @@ public class SupplyOffer {
 	}
 	
 	public void supply() {
-		if (startTime <= PlatformController.standardTime)
-			quantitySupply += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
+		if (startTime > PlatformController.standardTime)
+			System.out.println("Time error here! Please check supply function!!!!");
+		
+		currDeliverInterval++;
+		quantitySupply += deliverRate * (PlatformController.timeInterval * 1.0 / PlatformController.min2hour);
 	}
 	
 	

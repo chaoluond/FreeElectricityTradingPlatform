@@ -23,6 +23,11 @@ public class Bus {
 	public SupplyOffer currSupply; // Current supply offer
 	public Random ran; // random number generator
 	public int waitcount; // The number of waits for matching
+	/*
+	 * schedule == true ---- The bus is active during the current interval
+	 * schedule == false ---- The bus is inactive during this current interval
+	 */
+	public boolean schedule; 
 	
 	public Bus(int busid, int zoneid) {
 		this.busid = busid;
@@ -33,6 +38,7 @@ public class Bus {
 		currSupply = null;
 		ran = new Random();
 		waitcount = 0;
+		schedule = false;
 	}
 	
 	public void doWork() {
@@ -51,33 +57,43 @@ public class Bus {
 		}
 		else if (currBid != null) {
 			if (currBid.result) { // The current bid has a match
-				if (currBid.quantityRec >= currBid.quantity) {// This delivery is finished
-					aggreDemand += currBid.quantityRec;
-					currBid = null;
+				if (schedule) {// The bus is active during this interval
+					schedule = false;
+					currBid.receive();
 					
-					// Sanity check
-					if (!SupplyDemandMatcher.demandsupplypairs.containsKey(busid))
-						System.out.println("demandsupplypairs hashtable error!");
-					
-					
-					/*
-					 * Clean work
-					 */
-					SupplyDemandMatcher.demandsupplypairs.remove(busid);
-					
-					// delete the corresponding SD pair from the pairqueue
-					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
-						SDPair curr = iter.next();
-						if (curr.demandBus == busid) {
-							iter.remove();
-							break;
+					if (currBid.currDeliverInterval >= currBid.deliverInterval) {// This delivery is finished
+						aggreDemand += currBid.quantityRec;
+						
+						// check if this delivery is delayed
+						if (PlatformController.standardTime >= currBid.endTime) {
+							System.out.println("A delay delivery recorded!");
+							PlatformController.totalDelaySDPair++;
 						}
-							
+						
+						currBid = null;
+						
+						// Sanity check
+						if (!SupplyDemandMatcher.demandsupplypairs.containsKey(busid))
+							System.out.println("demandsupplypairs hashtable error!");
+						
+						
+						/*
+						 * Clean work
+						 */
+						SupplyDemandMatcher.demandsupplypairs.remove(busid);
+						
+						// delete the corresponding SD pair from the pairqueue
+						for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
+							SDPair curr = iter.next();
+							if (curr.demandBus == busid) {
+								iter.remove();
+								break;
+							}
+								
+						}
+						
 					}
 					
-				}
-				else {// This delivery is not finished.
-					currBid.receive();
 				}
 			}
 			else {// This demand bid does not have a match
@@ -95,32 +111,37 @@ public class Bus {
 		}
 		else {// currSupply != null
 			if (currSupply.result) { // The current supply has a match
-				if (currSupply.quantitySupply >= currSupply.totalSupplyPlan) {// This delivery is finished
-					aggreSupply += currSupply.quantitySupply;
-					currSupply = null;
-
-
-					/*
-					 * Clean work
-					 */
-					// Sanity check
-					if (!SupplyDemandMatcher.supplydemandpairs.containsKey(busid))
-						System.out.println("supplydemandpairs hashtable error");
+				
+				if (schedule) {// The bus is active during the current interval
+					schedule = false;
+					currSupply.supply();
 					
-					SupplyDemandMatcher.supplydemandpairs.remove(busid);
-					
-					// delete corresponding SD pair from pairqueue
-					for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
-						SDPair curr = iter.next();
-						if (curr.supplyBus == busid) {
-							iter.remove();
-							break;
+					if (currSupply.currDeliverInterval >= currSupply.deliverInterval) {// This delivery is finished
+						aggreSupply += currSupply.quantitySupply;
+						currSupply = null;
+						
+						
+						/*
+						 * Clean work
+						 */
+						// Sanity check
+						if (!SupplyDemandMatcher.supplydemandpairs.containsKey(busid))
+							System.out.println("supplydemandpairs hashtable error");
+						
+						SupplyDemandMatcher.supplydemandpairs.remove(busid);
+						
+						// delete corresponding SD pair from pairqueue
+						for (Iterator<SDPair> iter = SupplyDemandMatcher.pairqueue.iterator(); iter.hasNext(); ) {
+							SDPair curr = iter.next();
+							if (curr.supplyBus == busid) {
+								iter.remove();
+								break;
+							}
 						}
+						
 					}
 					
 				}
-				else
-					currSupply.supply();
 			}
 			else {// This supply offer does not have a match.
 				// Check if this supply offer has expired

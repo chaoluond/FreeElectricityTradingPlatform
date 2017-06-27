@@ -291,7 +291,7 @@ public class FlowOptimizer {
 			returncode = opt.optimize();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		
 		
@@ -412,13 +412,13 @@ public class FlowOptimizer {
 					int supplyBusid = pair.supplyBus;
 					int demandBusid = pair.demandBus;
 					if (!supplydemandpairs.containsKey(supplyBusid) || supplydemandpairs.get(supplyBusid) != demandBusid) {
-						//System.out.println("Next interval does not include this SD pair!");
+						System.out.println("Error! Next interval does not include this SD pair!");
 						continue;
 					}
 					
 					String key = tuple[0] + "+" + tuple[1] + "+" + tuple[2];
 					if (!ind2Pind.containsKey(key))
-						System.out.println("Error!");
+						System.out.println("Hashtable error!");
 					
 					int ind = ind2Pind.get(key);
 					sum += solution[ind];
