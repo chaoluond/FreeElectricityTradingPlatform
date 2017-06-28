@@ -48,6 +48,9 @@ public class Bus {
 				currBid = generateBid();
 				// TODO by Chao, [Jun 4, 2017, 11:19:31 AM]. Synchronize this operation
 				SupplyDemandMatcher.demanders.add(busid);
+				
+				//update totaldemander
+				PlatformController.totalDemander++;
 			}
 			else if (p <= PlatformController.pGenerate) {// Generate a supply offer
 				currSupply = generateOffer();
@@ -103,6 +106,9 @@ public class Bus {
 					waitcount = 0;
 					currBid = null;
 					SupplyDemandMatcher.demanders.remove(busid);
+					
+					//update nomatcherdemander
+					PlatformController.nomatchDemander++;
 				}
 				else {
 					waitcount++;

@@ -42,11 +42,9 @@ public class Branch {
 	public void updateTotalFlow(double flow) {
 		avgFlow = (avgFlow * totalCount + flow) / (totalCount + 1);
 		totalCount++;
-	}
-	
-	public void computeRatio() {
 		flow2capratio = avgFlow / capacity;
 	}
+	
 	
 	
 	public void print() {

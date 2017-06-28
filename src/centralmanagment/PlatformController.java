@@ -33,15 +33,15 @@ public class PlatformController {
 	 */
 	
 	public static final long min2hour = 60; // One hour is equal to 60 minutes
-	public static int powerPlanRange = 10; // The range for power plan 
+	public static int powerPlanRange = 5; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 300; // The number of intervals
-	public static double pGenerate = 0.5; // the probability that this bus will generate a new bid or offer is 90%
+	public static int numInterval = 1500; // The number of intervals
+	public static double pGenerate = 1.0; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 10; // the start time range used in supply offer generation
 	public static int minQuantity = 20; // Min electricity demand is 20 MWh
-	public static int maxQuantity = 60; // Max electricity demand is 200 MWh
+	public static int maxQuantity = 45; // Max electricity demand is 200 MWh
 	public static int bidid = 0; // global bid id counter
 	public static int offerid = 0; // global offer id counter
 	public static double maxSourcePriceBid = 10; // Max source price for bid 
@@ -51,10 +51,10 @@ public class PlatformController {
 	public static double deliverPrice = 10; // 
 	public static int zoneNum = 3; // Number of zones
 	public static int maxRoute = 2; // The max number of routes returned
-	public static int[] congestionBranch = {237, 156, 236, 303, 315, 211, 255, 257, 210, 215, 
-			302, 314, 216, 58, 261}; // The congestion branch id
-	public static HashSet<Integer> congBrchSet;
+	public static HashMap<Integer, Double> congBrchCapacity; // The capacity of congested branches
+	public static int numCongBrch = 20; // The number of congestion branches we need to consider 
 	public static int maxwait = 2; // The max number of waits for matching
+	public static double feedbackPara = 10; // The parameter for multiplier in supplydemandmatcher
 	
 	public static double throughput = 0; // record the throughput in WM
 	public static double powerloss = 0; // record the total energy loss in WM
@@ -64,6 +64,8 @@ public class PlatformController {
 	public static int totalDelaySDPair = 0; // Total number of delayed SD pairs
 	public static double averagePrice = 0; // The average purchase price in $/MWh
 	public static double averagePriceGap = 0; // The average purchase price saving in $/MWh
+	public static int totalDemander = 0; // Total number of demanders
+	public static int nomatchDemander = 0; // The number of demanders which do not have a match.
 	
 	/*
 	 * Parameters for ranking algorithm
@@ -76,7 +78,9 @@ public class PlatformController {
 	public static double threshold1 = 0.5; // The threshold for incoming demand or outgoing supply capacity penatly
 	public static double threshold2 = 0.75; // The threshold for ....
 	public static double threshold3 = 0.9; // The threshold for
-	public static double currDelayProb = 0; // Current delay probability
+	public static double currCongProb = 0; // Current congestion probability
+	
+	public static List<Branch> branchListOrdered = null; // The branchlist to be sorted
 	
 	public NetworkGraph network;
 	public SupplyDemandMatcher matcher;
@@ -85,10 +89,11 @@ public class PlatformController {
 	public PlatformController() {
 		network = new NetworkGraph();
 		int numBus = network.bus.size();
+		//numCongBrch = network.branch.size();
 		matcher = new SupplyDemandMatcher(network, numBus);
-		congBrchSet = new HashSet<>();
-		for (int i : congestionBranch)
-			congBrchSet.add(i);
+		congBrchCapacity = new HashMap<>();
+		// branchListOrdered is a shallow copy of network.branch
+		branchListOrdered = new ArrayList<>(network.branch);
 		
 	}
 	
@@ -96,13 +101,14 @@ public class PlatformController {
 	public void run() {
 		
 		for (int step = 0; step < numInterval; step++) {
-			currDelayProb = congcount * 1.0 / (step + 1);
-			System.out.println("Delay probability is: " + currDelayProb);
+			currCongProb = congcount * 1.0 / (step + 1);
+			System.out.println("Congestion probability is: " + currCongProb);
+			
 			
 			System.out.println("Iteration #: " + step);
 			//System.out.println("Do match here!");
 			
-			matcher.matchVersion3();
+			matcher.matchVersion1();
 			
 			System.out.println("Number of SD pairs: " + SupplyDemandMatcher.pairqueue.size());
 			
@@ -130,7 +136,9 @@ public class PlatformController {
 				}
 				
 				if (result) {
+					System.out.println("Final number of SD pair: " + pairs.size());
 					powerloss += foper.computePowerLoss();
+					foper.computeBranchFlow();
 					for (SDPair p : pairs) {
 						int demandbusid = p.demandBus;
 						int supplybusid = p.supplyBus;
@@ -149,16 +157,41 @@ public class PlatformController {
 			//System.out.println("Update model standard time");
 			standardTime += timeInterval;
 			
+			
+			
+			//update congestion branches
+			Collections.sort(branchListOrdered, new Comparator<Branch>() {
+				@Override
+				public int compare(Branch b1, Branch b2) {
+					if (b1.flow2capratio < b2.flow2capratio)
+						return 1;
+					else if (b1.flow2capratio > b2.flow2capratio)
+						return -1;
+					else
+						return 0;
+				}
+			});
+			
+			congBrchCapacity.clear();
+			for (int num = 0; num < numCongBrch; num++) {
+				int cbid = branchListOrdered.get(num).id;
+				double capp = branchListOrdered.get(num).capacity;
+				congBrchCapacity.put(cbid, capp);
+			}
+			
+			
 		}
 		
 		System.out.println("Iteration number: " + numInterval);
-		System.out.println("New matching algorithm used.");
+		System.out.println("Genration probability: " + pGenerate);
+		System.out.println("Plain matching algorithm used.");
 		System.out.println("Average delivery delay probability " + totalDelaySDPair * 1.0 / totalAccSDPair);
 		System.out.println("Average throughput: " + throughput / numInterval);
 		System.out.println("Average powerloss: " + powerloss / numInterval);
 		System.out.println("Average congestion probability: " + congcount * 1.0 / numInterval);
 		System.out.println("Average price: " + averagePrice / totalAccSDPair);
 		System.out.println("Average price gap: " + averagePriceGap / totalAccSDPair);
+		System.out.println("Average demandAd matching probability: " + (1 - nomatchDemander * 1.0 / totalDemander));
 		
 		
 		
@@ -173,22 +206,11 @@ public class PlatformController {
 		System.out.println("Average power loss is " + plsum / countfeasible);
 		System.out.println("Average number of hops is " + totalHops * 1.0 / countfeasible);*/
 		
-		/*for (Branch br : network.branch) {
-			br.computeRatio();
-		}
-		
-		Collections.sort(network.branch, new Comparator<Branch>() {
-			@Override
-			public int compare(Branch b1, Branch b2) {
-				return b1.flow2capratio < b2.flow2capratio ? 1 : -1;
-			}
-		});
-		
 		List<String> content = new ArrayList<>();
 		for (Branch br : network.branch)
 			content.add(br.toString());
-		*/
-		//WriteToFile.write2File(content, "branchflow_lowpower_longtime.txt");
+		
+		WriteToFile.write2File(content, "branchflowpower.txt");
 	}
 	
 	

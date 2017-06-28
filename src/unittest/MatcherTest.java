@@ -1,6 +1,7 @@
 package unittest;
 
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.junit.Test;
@@ -15,10 +16,8 @@ public class MatcherTest {
 	@Test
 	public void test() {
 		SupplyDemandMatcher matcher = new SupplyDemandMatcher(new NetworkGraph(), 118);
-		PlatformController.congBrchSet = new HashSet<>();
+		PlatformController.congBrchCapacity = new HashMap<>();
 		
-		for (int i : PlatformController.congestionBranch)
-			PlatformController.congBrchSet.add(i);
 			
 		for (int i = 0; i < 5; i++) {
 			
@@ -32,7 +31,7 @@ public class MatcherTest {
 				SupplyDemandMatcher.busPool.get(busid).currSupply.print();
 				
 			
-			matcher.matchVersion2();
+			matcher.matchVersion1();
 			
 			System.out.println("After match, demandiers: ");
 			for (int busid : SupplyDemandMatcher.demanders)

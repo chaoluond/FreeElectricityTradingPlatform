@@ -385,7 +385,7 @@ public class FlowOptimizer {
 			
 			BranchFlow bf = new BranchFlow(br.bus1, br.bus2, sum);
 			branchflows.add(bf);
-			//br.updateTotalFlow(sum);
+			br.updateTotalFlow(sum);
 		}
 		
 		
@@ -402,8 +402,7 @@ public class FlowOptimizer {
 		
 		HashMap<Integer, Integer> supplydemandpairs = SupplyDemandMatcher.supplydemandpairs;
 		
-		for (int i = 0; i < PlatformController.congestionBranch.length; i++) {
-			int brchid = PlatformController.congestionBranch[i];
+		for (int brchid : PlatformController.congBrchCapacity.keySet()) {
 			double sum = 0;
 			if (branchIndex.containsKey(brchid)) {// we only consider the congestion branch involved in last delivery
 				List<int[]> components = branchIndex.get(brchid);
