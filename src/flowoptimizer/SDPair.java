@@ -19,4 +19,9 @@ public class SDPair {
 		requestPower = power;
 		this.routes = r;
 	}
+	
+	public void print() {
+		System.out.println("supplybus id: " + supplyBus + ", demandbus id: " + demandBus + ", requestpower: " 
+				+ requestPower + ", number of routes: " + routes.size());
+	}
 }

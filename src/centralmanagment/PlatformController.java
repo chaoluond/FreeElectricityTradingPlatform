@@ -6,19 +6,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Semaphore;
 
 import flowoptimizer.FlowOptimizer;
 import flowoptimizer.SDPair;
 import powernetwork.Branch;
 import powernetwork.NetworkGraph;
 import supplydemandmatch.SupplyDemandMatcher;
-import supplydemandsimulation.Bus;
-import unittest.WriteToFile;
 
 
 
@@ -32,11 +26,12 @@ public class PlatformController {
 	 * @param args
 	 */
 	
+	public static int numBus = 118; // The number of buses for simulations
 	public static final long min2hour = 60; // One hour is equal to 60 minutes
 	public static int powerPlanRange = 5; // The range for power plan 
 	public static long standardTime = 0; // in minute
 	public static long timeInterval = 15; // in minute
-	public static int numInterval = 1500; // The number of intervals
+	public static int numInterval = 20000; // The number of intervals
 	public static double pGenerate = 1.0; // the probability that this bus will generate a new bid or offer is 90%
 	public static int timeRangeBid = 10; // the start time range used in Demand bid generation
 	public static int timeRangeOffer = 10; // the start time range used in supply offer generation
@@ -71,14 +66,15 @@ public class PlatformController {
 	 * Parameters for ranking algorithm
 	 */
 	public static double alpha1 = 0.2; // Parameter for source price gap
-	public static double alpha2 = 0.4; // Parameter for deliver price
+	public static double alpha2 = -0.4; // Parameter for deliver price
 	public static double alpha3 = 0.2; // Parameter for zone
 	public static double alpha4 = 0.2; // Parameter for renewable energy
-	public static double[] gamma = new double[]{1, 2, 4, 20}; // Congestion penalty parameter
+	public static double[] gamma = new double[]{1, 2, 4, 8}; // Congestion penalty parameter
 	public static double threshold1 = 0.5; // The threshold for incoming demand or outgoing supply capacity penatly
 	public static double threshold2 = 0.75; // The threshold for ....
 	public static double threshold3 = 0.9; // The threshold for
 	public static double currCongProb = 0; // Current congestion probability
+	public static long seed = 0; // The seed for Random
 	
 	public static List<Branch> branchListOrdered = null; // The branchlist to be sorted
 	
@@ -108,7 +104,7 @@ public class PlatformController {
 			System.out.println("Iteration #: " + step);
 			//System.out.println("Do match here!");
 			
-			matcher.matchVersion1();
+			matcher.matchVersion3();
 			
 			System.out.println("Number of SD pairs: " + SupplyDemandMatcher.pairqueue.size());
 			
@@ -123,6 +119,7 @@ public class PlatformController {
 			if (pairs.isEmpty())
 				System.out.println("No matched pairs! Do not invoke optimization routine.");
 			else { 
+				List<SDPair> templist = new ArrayList<>(pairs);
 				foper = new FlowOptimizer(network, pairs);
 				result = foper.solve();
 				
@@ -144,6 +141,12 @@ public class PlatformController {
 						int supplybusid = p.supplyBus;
 						SupplyDemandMatcher.busPool.get(demandbusid).schedule = true;
 						SupplyDemandMatcher.busPool.get(supplybusid).schedule = true;
+					}
+				}
+				else {
+					System.out.println("Fatal error happens here!!!!!!!");
+					for (SDPair sdpair : templist) {
+						sdpair.print();
 					}
 				}
 			}
@@ -184,10 +187,12 @@ public class PlatformController {
 		
 		System.out.println("Iteration number: " + numInterval);
 		System.out.println("Genration probability: " + pGenerate);
-		System.out.println("Plain matching algorithm used.");
+		System.out.println("New matching algorithm used.");
+		System.out.println("Max route number is " + maxRoute);
 		System.out.println("Average delivery delay probability " + totalDelaySDPair * 1.0 / totalAccSDPair);
 		System.out.println("Average throughput: " + throughput / numInterval);
 		System.out.println("Average powerloss: " + powerloss / numInterval);
+		System.out.println("Power loss ratio: " + powerloss / (throughput * 1E6));
 		System.out.println("Average congestion probability: " + congcount * 1.0 / numInterval);
 		System.out.println("Average price: " + averagePrice / totalAccSDPair);
 		System.out.println("Average price gap: " + averagePriceGap / totalAccSDPair);
@@ -206,11 +211,11 @@ public class PlatformController {
 		System.out.println("Average power loss is " + plsum / countfeasible);
 		System.out.println("Average number of hops is " + totalHops * 1.0 / countfeasible);*/
 		
-		List<String> content = new ArrayList<>();
+		/*List<String> content = new ArrayList<>();
 		for (Branch br : network.branch)
 			content.add(br.toString());
 		
-		WriteToFile.write2File(content, "branchflowpower.txt");
+		WriteToFile.write2File(content, "branchflowpower.txt");*/
 	}
 	
 	

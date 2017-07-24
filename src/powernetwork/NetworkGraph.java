@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import centralmanagment.PlatformController;
+
 /**
  * @author Chao
  * Throughout the power network, we use "MW" for power, "ohme" for resistance, "kV"
@@ -21,7 +23,7 @@ public class NetworkGraph {
 	public HashMap<Integer, HashMap<Integer, List<Branch>>> graph = new HashMap<>();
 	public HashMap<Integer, int[]> bus = new HashMap<>(); // (bus, [basevotage, zoneid])
 	public List<Branch> branch = new ArrayList<>(); // A complete list of branches
-	public double[] capacities = {200, 500}; // capacity in MW for 138kV and 345kV transmission lines
+	//public double[] capacities = {200, 500}; // capacity in MW for 138kV and 345kV transmission lines
 	public double baseMVA = 100; // baseMVA = 100 MVA
 	public int numBranch = 0; // Number of branches
 	
@@ -30,12 +32,14 @@ public class NetworkGraph {
 	public NetworkGraph(){
 		BufferedReader reader = null;
 		List<List<Double>> bch = new ArrayList<>();
+		String busFile = "bus_" + PlatformController.numBus + ".txt";
+		String brchFile = "branch_" + PlatformController.numBus + ".txt";
 		String s = "";
 		int id = 0;
 		
 		// Read bux.txt and branch.txt into arraylists
 		try {
-			reader = new BufferedReader(new FileReader("bus.txt"));
+			reader = new BufferedReader(new FileReader(busFile));
 			while ((s = reader.readLine()) != null) {
 				String[] value = s.split("\\s+");
 				int[] feature = new int[]{Integer.parseInt(value[1]), Integer.parseInt(value[2])};
@@ -44,7 +48,7 @@ public class NetworkGraph {
 			
 			reader.close();
 			
-			reader = new BufferedReader(new FileReader("branch.txt"));
+			reader = new BufferedReader(new FileReader(brchFile));
 			
 			while ((s = reader.readLine()) != null) {
 				String[] value = s.split("\\s+");
@@ -92,7 +96,8 @@ public class NetworkGraph {
 				resistance = vol1 * vol1 * 1.0 / baseMVA * resistancePU; 
 			}
 			
-			capacity = vol1 == 138 ? capacities[0] : capacities[1];
+			//capacity = vol1 == 138 ? capacities[0] : capacities[1];
+			capacity = Math.max(vol1, vol2);
 			
 			Branch br1to2 = new Branch(bus1, bus2, vol1, vol2, resistance, capacity, id++);
 			Branch br2to1 = new Branch(bus2, bus1, vol2, vol1, resistance, capacity, id++);

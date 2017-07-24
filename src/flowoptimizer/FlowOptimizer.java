@@ -1,6 +1,7 @@
 package flowoptimizer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -171,8 +172,13 @@ public class FlowOptimizer {
 			A[i] = AList.get(i);
 			b[i] = bList.get(i);
 		}
+		
+		
+		Matrix Amatrix = new Matrix(A);
+		int rank = Amatrix.rank();
+		int unknown = A[0].length; 
 			
-		if (PlatformController.maxRoute == 1)
+		if (rank == unknown)// solve linear functions
 			return solveLinearEquation();
 		else 
 			return solveOptimization();

@@ -4,14 +4,12 @@
 package supplydemandmatch;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import centralmanagment.PlatformController;
 import flowoptimizer.FlowOptimizer;
@@ -30,7 +28,7 @@ import supplydemandsimulation.Bus;
 public class SupplyDemandMatcher {
 	public int numBus;
 	public NetworkGraph network;
-	public Random ran;
+	//public Random ran;
 	public static List<Bus> busPool;
 	public static HashSet<Integer> suppliers;
 	public static HashSet<Integer> demanders;
@@ -49,7 +47,7 @@ public class SupplyDemandMatcher {
 		this.network = network;
 		this.numBus = numBus;
 		HashMap<Integer, int[]> bus = network.bus;
-		ran = new Random();
+		//ran = new Random(PlatformController.seed);
 		// Populate bus pool
 		busPool = new ArrayList<>();
 		busPool.add(new Bus(0, 0)); // Dummy bus, never will use it.
@@ -65,9 +63,7 @@ public class SupplyDemandMatcher {
 		//congBrchFlow = new HashMap<>();
 		//congBFForecast = new HashMap<>();
 		intCongBrchFlow = null;
-		
 		pairqueue = new ArrayList<>();
-		
 	}
 	
 	
@@ -400,8 +396,6 @@ public class SupplyDemandMatcher {
 		
 	}
 
-
-	
 
 	public List<SDPair> computeCurrSDPairs() {// generate the SD pairs for the current interval
 		List<SDPair> result = new ArrayList<>();

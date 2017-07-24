@@ -42,6 +42,7 @@ public class Bus {
 	}
 	
 	public void doWork() {
+		ran = new Random();
 		if (currBid == null && currSupply == null) { // The bus is free
 			double p = ran.nextDouble();
 			if (p <= PlatformController.pGenerate / 2) {// Generate a demand bid
